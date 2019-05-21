@@ -1,14 +1,17 @@
 import numpy as np
 import cv2 as cv
+import pyautogui as gui
 import visfx
 
 # Create an FX Stack
 FX = visfx.Stack(
     [
-        visfx.layers.Tracers(),
         visfx.layers.Symmetry()
     ]
 )
+
+SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
+
 # Capture default camera
 cap = cv.VideoCapture(0)
 
@@ -28,7 +31,19 @@ while True:
     # Apply FX Stack to frame
     output = FX.apply(frame)
 
+    # Resize and pad output to fit screen
+    height, width, channels = output.shape
+    ratio = SCREEN_HEIGHT / height
+
+    rescale = tuple([int(x*ratio) for x in (height, width)])
+
+    output = cv.resize(output, (rescale[1], rescale[0]), cv.INTER_CUBIC)
+    border_size = int((SCREEN_WIDTH - rescale[1]) * 0.5)
+    output = cv.copyMakeBorder(output, 0, 0, border_size, border_size, cv.BORDER_CONSTANT, value=[0,0,0])
+
     # Display the resulting frame
+    cv.namedWindow('frame', cv.WINDOW_NORMAL)
+    cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
     cv.imshow('frame', output)
 
     # Get key press
