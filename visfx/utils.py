@@ -17,3 +17,13 @@ class Stack:
         '''Pass the user input to the fx layers.'''
         for layer in self.layers:
             layer.userInput(key)
+
+    def getTooltips(self):
+        tooltips = []
+        for layer in self.layers:
+            try:
+                tooltips.append(layer.tooltip)
+            except:
+                continue
+
+        return tooltips

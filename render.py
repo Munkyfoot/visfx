@@ -10,6 +10,8 @@ FX = visfx.Stack(
     ]
 )
 
+TOOLTIPS = ["Press 'Q' to quit"] + FX.getTooltips()
+
 SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
 
 # Capture default camera
@@ -39,7 +41,16 @@ while True:
 
     output = cv.resize(output, (rescale[1], rescale[0]), cv.INTER_CUBIC)
     border_size = int((SCREEN_WIDTH - rescale[1]) * 0.5)
-    output = cv.copyMakeBorder(output, 0, 0, border_size, border_size, cv.BORDER_CONSTANT, value=[0,0,0])
+    output = cv.copyMakeBorder(
+        output, 0, 0, border_size, border_size, cv.BORDER_CONSTANT, value=[0, 0, 0])
+
+    # Add tooltips
+    font = cv.FONT_HERSHEY_SIMPLEX
+    offset = 0
+    for tip in TOOLTIPS:
+        cv.putText(output, tip, (height // 10,
+                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 10
 
     # Display the resulting frame
     cv.namedWindow('frame', cv.WINDOW_NORMAL)

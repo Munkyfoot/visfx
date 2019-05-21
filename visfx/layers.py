@@ -23,16 +23,13 @@ class Ghost(Layer):
         self.background = None
         self.last_input = None
         self.last_output = None
+        self.tooltip = "Press 'B' to set the background"
 
     def apply(self, frame):
         output = frame.copy()
         height, width, channels = output.shape
 
-        if self.background is None:
-            font = cv.FONT_HERSHEY_SIMPLEX
-            cv.putText(output, 'Press B to set background', (height // 10,
-                                                             height // 10), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-        else:
+        if self.background is not None:
             output = cv.addWeighted(self.background, 1 / 3, frame, 2 / 3, 0)
 
         self.last_input = frame
@@ -79,6 +76,7 @@ class Symmetry(Layer):
         self.mode = 0
         self.last_input = None
         self.last_output = None
+        self.tooltip = "Press 'M' to cycle through symmetry modes"
 
     def apply(self, frame):
         output = frame.copy()
