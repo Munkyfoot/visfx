@@ -52,6 +52,12 @@ while True:
                                       height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 10
 
+    offset += height // 10
+    for readout in FX.getReadouts():
+        cv.putText(output, readout, (height // 10,
+                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 10    
+
     # Display the resulting frame
     cv.namedWindow('frame', cv.WINDOW_NORMAL)
     cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)

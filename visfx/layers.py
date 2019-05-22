@@ -23,7 +23,7 @@ class Ghost(Layer):
         self.background = None
         self.last_input = None
         self.last_output = None
-        self.tooltip = "Press 'B' to set the background"
+        self.tooltips = ["Press 'B' to set the background"]
 
     def apply(self, frame):
         output = frame.copy()
@@ -47,18 +47,21 @@ class RemoveBG(Layer):
     def __init__(self):
         self.type = 'Remove BG'
         self.background = None
+        self.threshold = 32
         self.last_input = None
         self.last_output = None
-        self.tooltip = "Press 'B' to set the background"
+        self.tooltips = ["Press 'B' to set the background",
+        "Press 'T' to adjust BG detection threshold"]
+        self.readouts = ["BG Detection Threshold:{}".format(self.threshold)]
 
     def apply(self, frame):
         output = frame.copy()
         height, width, channels = output.shape        
 
         if self.background is not None:
-            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-            gray_bg = cv.cvtColor(self.background, cv.COLOR_BGR2GRAY)
-            output[cv.absdiff(gray, gray_bg) < 48] = 0
+            hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+            hsv_bg = cv.cvtColor(self.background, cv.COLOR_BGR2HSV)
+            output[(cv.absdiff(hsv[:,:,0], hsv_bg[:,:,0]) + cv.absdiff(hsv[:,:,1], hsv_bg[:,:,1]) + cv.absdiff(hsv[:,:,2], hsv_bg[:,:,2])) < self.threshold] = 0
 
         self.last_input = frame
         self.last_output = output
@@ -67,6 +70,12 @@ class RemoveBG(Layer):
     def userInput(self, key):
         if key == ord('b'):
             self.background = self.last_input
+
+        if key == ord('t'):
+            self.threshold += 16
+            if self.threshold > 255:
+                self.threshold = 16
+            self.readouts[0] = "BG Detection Threshold:{}".format(self.threshold)
 
 
 class Tracers(Layer):
@@ -104,7 +113,7 @@ class Symmetry(Layer):
         self.mode = 0
         self.last_input = None
         self.last_output = None
-        self.tooltip = "Press 'M' to cycle through symmetry modes"
+        self.tooltips = ["Press 'M' to cycle through symmetry modes"]
 
     def apply(self, frame):
         output = frame.copy()

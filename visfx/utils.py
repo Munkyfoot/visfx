@@ -22,9 +22,22 @@ class Stack:
         tooltips = []
         for layer in self.layers:
             try:
-                if layer.tooltip not in tooltips:
-                    tooltips.append(layer.tooltip)
+                for tooltip in layer.tooltips:
+                    if tooltip not in tooltips:
+                        tooltips.append(tooltip)
             except:
                 continue
 
         return tooltips
+
+    def getReadouts(self):
+        readouts = []
+        for layer in self.layers:
+            try:
+                for readout in layer.readouts:
+                    if readout not in readouts:
+                        readouts.append(readout)
+            except:
+                continue
+
+        return readouts
