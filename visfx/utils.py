@@ -41,3 +41,14 @@ class Stack:
                 continue
 
         return readouts
+
+    def getLayerNames(self):
+        layerNames = ""
+        for l in range(len(self.layers)):
+            if l == 0:
+                layerNames += self.layers[l].type
+            else:
+                layerNames += " | {}".format(self.layers[l].type)
+                
+
+        return layerNames

@@ -6,7 +6,8 @@ import visfx
 # Create an FX Stack
 FX = visfx.Stack(
     [
-        visfx.layers.Denoise()
+        visfx.layers.RemoveBG(),
+        visfx.layers.Symmetry()
     ]
 )
 
@@ -47,16 +48,19 @@ while True:
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
     offset = 0
+    cv.putText(output, "FX Layers: " + FX.getLayerNames(), (height // 10,
+                                            height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+    offset += height // 10
     for tip in TOOLTIPS:
         cv.putText(output, tip, (height // 10,
-                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+                                 height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 10
 
     offset += height // 10
     for readout in FX.getReadouts():
         cv.putText(output, readout, (height // 10,
-                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-        offset += height // 10    
+                                     height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 10
 
     # Display the resulting frame
     cv.namedWindow('frame', cv.WINDOW_NORMAL)
