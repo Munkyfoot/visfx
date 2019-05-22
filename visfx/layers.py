@@ -65,13 +65,14 @@ class RemoveBG(Layer):
         if len(self.history) > 60:
             self.history.remove(self.history[0])
 
-        if self.background is not None:      
-            mask = np.zeros_like(output)      
-            mask[cv.absdiff(output, self.background) > 255 * self.threshold] = 255
+        if self.background is not None:
+            mask = np.zeros_like(output)
+            mask[cv.absdiff(output, self.background) >
+                 255 * self.threshold] = 255
 
-            flatmask = np.zeros((height,width), output.dtype)
-            flatmask = cv.max(mask[:,:,0], mask[:,:,1])
-            flatmask = cv.max(flatmask, mask[:,:,2])
+            flatmask = np.zeros((height, width), output.dtype)
+            flatmask = cv.max(mask[:, :, 0], mask[:, :, 1])
+            flatmask = cv.max(flatmask, mask[:, :, 2])
 
             output[flatmask == 0] = 0
 
@@ -117,11 +118,53 @@ class Tracers(Layer):
         output = self.history[0]
 
         for i in range(len(self.history)):
-            output = cv.addWeighted(output, 0.9, self.history[i], 0.1, 0)
+            output = cv.addWeighted(output, 0.9, self.history[i], 0.1, 1)
 
         self.last_input = frame
         self.last_output = output
         return output
+
+
+class Denoise(Layer):
+    '''Visual FX Layer (Denoise)'''
+
+    def __init__(self):
+        self.type = 'Denoise'
+        self.history = []
+        self.strength = 1
+        self.last_input = None
+        self.last_output = None
+        self.tooltips = ["Press 'S' to change denoise strength"]
+        self.readouts = ["Denoise Strength:{}".format(
+            self.strength)]
+
+    def apply(self, frame):
+        output = frame.copy()
+        height, width, channels = output.shape
+
+        self.history.append(frame)
+        if len(self.history) > 60:
+            self.history.remove(self.history[0])
+
+        output = self.history[-1]
+
+        if len(self.history) >= self.strength + 1:
+            average = self.history[-1]
+            for f in self.history[-(self.strength + 1):-1]:
+                average = cv.addWeighted(average, 0.5, f, 0.5, 1)
+            output = average
+
+        self.last_input = frame
+        self.last_output = output
+        return output
+
+    def userInput(self, key):
+        if key == ord('s'):
+            self.strength += 1
+            if self.strength > 3:
+                self.strength = 1
+            self.readouts[0] = "Denoise Strength:{}".format(
+                self.strength)
 
 
 class Symmetry(Layer):
