@@ -23,7 +23,8 @@ class Ghost(Layer):
         self.background = None
         self.last_input = None
         self.last_output = None
-        self.tooltips = ["Press 'B' to set the background"]
+        self.tooltips = ["Press 'B' to set the background",
+                         "Press 'C' to clear background"]
 
     def apply(self, frame):
         output = frame.copy()
@@ -47,23 +48,32 @@ class RemoveBG(Layer):
     def __init__(self):
         self.type = 'Remove BG'
         self.background = None
-        self.threshold = 32
+        self.threshold = 0.1
         self.last_input = None
         self.last_output = None
+        self.history = []
         self.tooltips = ["Press 'B' to set the background",
-        "Press 'T' to adjust BG detection threshold"]
+                         "Press 'C' to clear background",
+                         "Press 'T' to adjust BG detection threshold"]
         self.readouts = ["BG Detection Threshold:{}".format(self.threshold)]
 
     def apply(self, frame):
         output = frame.copy()
-        height, width, channels = output.shape        
+        height, width, channels = output.shape
 
-        if self.background is not None:
-            hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-            hsv = cv.blur(hsv, (5,5))
-            hsv_bg = cv.cvtColor(self.background, cv.COLOR_BGR2HSV)
-            hsv_bg = cv.blur(hsv_bg, (5,5))
-            output[(cv.absdiff(hsv[:,:,0], hsv_bg[:,:,0]) + cv.absdiff(hsv[:,:,1], hsv_bg[:,:,1]) + cv.absdiff(hsv[:,:,2], hsv_bg[:,:,2])) < self.threshold] = 0
+        self.history.append(frame)
+        if len(self.history) > 60:
+            self.history.remove(self.history[0])
+
+        if self.background is not None:      
+            mask = np.zeros_like(output)      
+            mask[cv.absdiff(output, self.background) > 255 * self.threshold] = 255
+
+            flatmask = np.zeros((height,width), output.dtype)
+            flatmask = cv.max(mask[:,:,0], mask[:,:,1])
+            flatmask = cv.max(flatmask, mask[:,:,2])
+
+            output[flatmask == 0] = 0
 
         self.last_input = frame
         self.last_output = output
@@ -71,13 +81,20 @@ class RemoveBG(Layer):
 
     def userInput(self, key):
         if key == ord('b'):
-            self.background = self.last_input
+            average = self.history[-1]
+            for frame in self.history[:-1]:
+                average = cv.addWeighted(average, 0.5, frame, 0.5, 1)
+            self.background = average
+
+        if key == ord('c'):
+            self.background = None
 
         if key == ord('t'):
-            self.threshold += 16
-            if self.threshold > 255:
-                self.threshold = 16
-            self.readouts[0] = "BG Detection Threshold:{}".format(self.threshold)
+            self.threshold += 0.1
+            if self.threshold > 1:
+                self.threshold = 0.1
+            self.readouts[0] = "BG Detection Threshold:{}".format(
+                self.threshold)
 
 
 class Tracers(Layer):
