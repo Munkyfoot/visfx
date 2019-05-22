@@ -60,7 +60,9 @@ class RemoveBG(Layer):
 
         if self.background is not None:
             hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+            hsv = cv.blur(hsv, (5,5))
             hsv_bg = cv.cvtColor(self.background, cv.COLOR_BGR2HSV)
+            hsv_bg = cv.blur(hsv_bg, (5,5))
             output[(cv.absdiff(hsv[:,:,0], hsv_bg[:,:,0]) + cv.absdiff(hsv[:,:,1], hsv_bg[:,:,1]) + cv.absdiff(hsv[:,:,2], hsv_bg[:,:,2])) < self.threshold] = 0
 
         self.last_input = frame
