@@ -6,7 +6,7 @@ import visfx
 # Create an FX Stack
 FX = visfx.Stack(
     [
-        visfx.layers.Symmetry()
+        visfx.layers.RemoveBG()
     ]
 )
 

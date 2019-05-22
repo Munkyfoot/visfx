@@ -41,6 +41,34 @@ class Ghost(Layer):
             self.background = self.last_input
 
 
+class RemoveBG(Layer):
+    '''Visual FX Layer (Remove BG)'''
+
+    def __init__(self):
+        self.type = 'Remove BG'
+        self.background = None
+        self.last_input = None
+        self.last_output = None
+        self.tooltip = "Press 'B' to set the background"
+
+    def apply(self, frame):
+        output = frame.copy()
+        height, width, channels = output.shape        
+
+        if self.background is not None:
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            gray_bg = cv.cvtColor(self.background, cv.COLOR_BGR2GRAY)
+            output[cv.absdiff(gray, gray_bg) < 48] = 0
+
+        self.last_input = frame
+        self.last_output = output
+        return output
+
+    def userInput(self, key):
+        if key == ord('b'):
+            self.background = self.last_input
+
+
 class Tracers(Layer):
     '''Visual FX Layer (Tracers)'''
 

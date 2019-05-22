@@ -22,7 +22,8 @@ class Stack:
         tooltips = []
         for layer in self.layers:
             try:
-                tooltips.append(layer.tooltip)
+                if layer.tooltip not in tooltips:
+                    tooltips.append(layer.tooltip)
             except:
                 continue
 
