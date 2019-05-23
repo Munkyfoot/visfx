@@ -25,26 +25,28 @@ class Stack:
                 layer.userInput(key)
 
     def getTooltips(self):
-        tooltips = []
+        tooltips = ["Press 'Q' to quit"]
         for layer in self.layers:
-            try:
-                for tooltip in layer.tooltips:
-                    if tooltip not in tooltips:
-                        tooltips.append(tooltip)
-            except:
-                continue
+            if layer.active:
+                try:
+                    for tooltip in layer.tooltips:
+                        if tooltip not in tooltips:
+                            tooltips.append(tooltip)
+                except:
+                    continue
 
         return tooltips
 
     def getReadouts(self):
         readouts = []
-        for layer in self.layers:            
-            try:
-                for readout in layer.readouts:
-                    if readout not in readouts:
-                        readouts.append(readout)
-            except:
-                continue
+        for layer in self.layers:
+            if layer.active:
+                try:
+                    for readout in layer.readouts:
+                        if readout not in readouts:
+                            readouts.append(readout)
+                except:
+                    continue
 
         return readouts
 

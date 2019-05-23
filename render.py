@@ -13,8 +13,6 @@ FX = visfx.Stack(
     ]
 )
 
-TOOLTIPS = ["Press 'Q' to quit"] + FX.getTooltips()
-
 SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
 
 # Capture default camera
@@ -60,7 +58,7 @@ while True:
         offset += height // 10
 
     offset += height // 10
-    for tip in TOOLTIPS:
+    for tip in FX.getTooltips():
         cv.putText(output, tip, (height // 10,
                                  height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 10
