@@ -136,7 +136,6 @@ class Denoise(Layer):
     def __init__(self):
         super().__init__()
         self.type = 'Denoise'
-        self.history = []
         self.strength = 1
         self.tooltips = ["Press 'S' to change denoise strength"]
         self.readouts = ["Denoise Strength:{}".format(
@@ -145,18 +144,16 @@ class Denoise(Layer):
     def apply(self, frame):
         output = frame.copy()
         height, width, channels = output.shape
+        
+        try:
+            output = cv.addWeighted(frame, 0.5, self.last_input, 0.5, 1)
+        except:
+            pass
 
-        self.history.append(frame)
-        if len(self.history) > 60:
-            self.history.remove(self.history[0])
-
-        output = self.history[-1]
-
-        if len(self.history) >= self.strength + 1:
-            average = self.history[-1]
-            for f in self.history[-(self.strength + 1):-1]:
-                average = cv.addWeighted(average, 0.5, f, 0.5, 1)
-            output = average
+        if self.strength == 2:
+            output = cv.bilateralFilter(output,3,45,45)
+        elif self.strength == 3:
+            output = cv.bilateralFilter(output,5,60,60)
 
         self.last_input = frame
         self.last_output = output
