@@ -7,6 +7,11 @@ class Layer:
 
     def __init__(self):
         self.type = None
+        self.active = True
+        self.last_input = None
+        self.last_output = None
+        self.tooltips = []
+        self.readouts = []
 
     def apply(self, frame):
         return frame
@@ -19,10 +24,9 @@ class Ghost(Layer):
     '''Visual FX Layer (Ghost)'''
 
     def __init__(self):
+        super().__init__()
         self.type = 'Ghost'
         self.background = None
-        self.last_input = None
-        self.last_output = None
         self.tooltips = ["Press 'B' to set the background",
                          "Press 'C' to clear background"]
 
@@ -46,11 +50,10 @@ class RemoveBG(Layer):
     '''Visual FX Layer (Remove BG)'''
 
     def __init__(self):
+        super().__init__()
         self.type = 'Remove BG'
         self.background = None
         self.threshold = 0.1
-        self.last_input = None
-        self.last_output = None
         self.history = []
         self.tooltips = ["Press 'B' to set the background",
                          "Press 'C' to clear background",
@@ -102,10 +105,9 @@ class Tracers(Layer):
     '''Visual FX Layer (Tracers)'''
 
     def __init__(self):
+        super().__init__()
         self.type = 'Tracers'
         self.history = []
-        self.last_input = None
-        self.last_output = None
 
     def apply(self, frame):
         output = frame.copy()
@@ -129,11 +131,10 @@ class Denoise(Layer):
     '''Visual FX Layer (Denoise)'''
 
     def __init__(self):
+        super().__init__()
         self.type = 'Denoise'
         self.history = []
         self.strength = 1
-        self.last_input = None
-        self.last_output = None
         self.tooltips = ["Press 'S' to change denoise strength"]
         self.readouts = ["Denoise Strength:{}".format(
             self.strength)]
@@ -171,10 +172,9 @@ class Symmetry(Layer):
     '''Visual FX Layer (Symmetry)'''
 
     def __init__(self):
+        super().__init__()
         self.type = 'Symmetry'
         self.mode = 0
-        self.last_input = None
-        self.last_output = None
         self.tooltips = ["Press 'M' to cycle through symmetry modes"]
 
     def apply(self, frame):
