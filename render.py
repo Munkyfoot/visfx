@@ -53,8 +53,13 @@ while True:
     offset += height // 10
 
     for name in FX.getLayerNames():
+        if 'ON' in name:
+            color = (128,255,128)
+        else:
+            color = (128,128,255)
+
         cv.putText(output, name, (height // 10,
-                                 height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+                                 height // 10 + offset), font, 0.5, color, 1, cv.LINE_AA)
         offset += height // 10
 
     offset += height // 10
