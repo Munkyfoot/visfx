@@ -56,10 +56,12 @@ class RemoveBG(Layer):
         super().__init__()
         self.type = 'Remove BG'
         self.background = None
+        self.show_bg = False
         self.threshold = 0.1
         self.history = []
         self.tooltips = ["Press 'B' to set the background",
                          "Press 'C' to clear background",
+                         "Press 'V' to toggle background",
                          "Press 'T' to adjust BG detection threshold"]
         self.readouts = ["BG Detection Threshold:{}".format(self.threshold)]
 
@@ -79,8 +81,11 @@ class RemoveBG(Layer):
             flatmask = np.zeros((height, width), output.dtype)
             flatmask = cv.max(mask[:, :, 0], mask[:, :, 1])
             flatmask = cv.max(flatmask, mask[:, :, 2])
-
-            output[flatmask == 0] = 0
+            
+            if self.show_bg:
+                output[flatmask == 0] = self.background[flatmask == 0]
+            else:
+                output[flatmask == 0] = 0
 
         self.last_input = frame
         self.last_output = output
@@ -102,6 +107,9 @@ class RemoveBG(Layer):
                 self.threshold = 0.1
             self.readouts[0] = "BG Detection Threshold:{}".format(
                 self.threshold)
+
+        if key == ord('v'):
+            self.show_bg = not self.show_bg
 
 
 class Tracers(Layer):
