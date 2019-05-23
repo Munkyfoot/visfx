@@ -21,7 +21,8 @@ class Stack:
                 self.layers[i].active = not self.layers[i].active
 
         for layer in self.layers:
-            layer.userInput(key)
+            if layer.active:
+                layer.userInput(key)
 
     def getTooltips(self):
         tooltips = []
@@ -55,10 +56,7 @@ class Stack:
             else:
                 status = "OFF"
 
-            if l == 0:
-                layerNames.append("{}-{} {}".format(l + 1, self.layers[l].type, status))
-            else:
-                layerNames.append(" | {}-{} {}".format(l + 1, self.layers[l].type, status))
+            layerNames.append("{}-{} {}".format(l + 1, self.layers[l].type, status))
                 
 
         return layerNames
