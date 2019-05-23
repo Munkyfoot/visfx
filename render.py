@@ -47,8 +47,15 @@ while True:
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
     offset = 0
-    cv.putText(output, "FX Layers: " + FX.getLayerNames(), (height // 10,
+    cv.putText(output, "FX Layers:", (height // 10,
                                             height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+    offset += height // 10
+
+    for name in FX.getLayerNames():
+        cv.putText(output, name, (height // 10,
+                                 height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 10
+
     offset += height // 10
     for tip in TOOLTIPS:
         cv.putText(output, tip, (height // 10,

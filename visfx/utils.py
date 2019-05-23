@@ -9,12 +9,17 @@ class Stack:
         output = frame.copy()
 
         for layer in self.layers:
-            output = layer.apply(output)
+            if layer.active:
+                output = layer.apply(output)
 
         return output
 
     def userInput(self, key):
         '''Pass the user input to the fx layers.'''
+        for i in range(len(self.layers)):
+            if key == ord(str(i + 1)):
+                self.layers[i].active = not self.layers[i].active
+
         for layer in self.layers:
             layer.userInput(key)
 
@@ -32,7 +37,7 @@ class Stack:
 
     def getReadouts(self):
         readouts = []
-        for layer in self.layers:
+        for layer in self.layers:            
             try:
                 for readout in layer.readouts:
                     if readout not in readouts:
@@ -43,12 +48,17 @@ class Stack:
         return readouts
 
     def getLayerNames(self):
-        layerNames = ""
+        layerNames = []
         for l in range(len(self.layers)):
-            if l == 0:
-                layerNames += self.layers[l].type
+            if self.layers[l].active:
+                status = "ON"
             else:
-                layerNames += " | {}".format(self.layers[l].type)
+                status = "OFF"
+
+            if l == 0:
+                layerNames.append("{}-{} {}".format(l + 1, self.layers[l].type, status))
+            else:
+                layerNames.append(" | {}-{} {}".format(l + 1, self.layers[l].type, status))
                 
 
         return layerNames
