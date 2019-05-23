@@ -45,6 +45,9 @@ class Ghost(Layer):
         if key == ord('b'):
             self.background = self.last_input
 
+        if key == ord('c'):
+            self.background = None
+
 
 class RemoveBG(Layer):
     '''Visual FX Layer (Remove BG)'''
