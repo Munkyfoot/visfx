@@ -2,5 +2,5 @@
 
 import numpy as np
 import cv2 as cv
-from . import layers
+from . import effects
 from .utils import *

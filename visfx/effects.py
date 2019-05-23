@@ -5,9 +5,9 @@ import cv2 as cv
 class Layer:
     '''Visual FX Layer (Empty)'''
 
-    def __init__(self):
+    def __init__(self, start_active=False):
         self.type = None
-        self.active = True
+        self.active = start_active
         self.last_input = None
         self.last_output = None
         self.tooltips = []
