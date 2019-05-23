@@ -111,6 +111,10 @@ class Tracers(Layer):
         super().__init__()
         self.type = 'Tracers'
         self.history = []
+        self.duration = 1
+        self.tooltips = ["Press 'D' to change tracer duration"]
+        self.readouts = ["Tracer Duration:{}".format(
+            self.duration)]
 
     def apply(self, frame):
         output = frame.copy()
@@ -123,11 +127,20 @@ class Tracers(Layer):
         output = self.history[0]
 
         for i in range(len(self.history)):
-            output = cv.addWeighted(output, 0.9, self.history[i], 0.1, 1)
+            output = cv.addWeighted(
+                output, 0.5 + self.duration * 0.1, self.history[i], 0.5 - self.duration * 0.1, 1)
 
         self.last_input = frame
         self.last_output = output
         return output
+
+    def userInput(self, key):
+        if key == ord('d'):
+            self.duration += 1
+            if self.duration > 4:
+                self.duration = 1
+            self.readouts[0] = "Tracer Duration:{}".format(
+                self.duration)
 
 
 class Denoise(Layer):
@@ -144,16 +157,16 @@ class Denoise(Layer):
     def apply(self, frame):
         output = frame.copy()
         height, width, channels = output.shape
-        
+
         try:
             output = cv.addWeighted(frame, 0.5, self.last_input, 0.5, 1)
         except:
             pass
 
         if self.strength == 2:
-            output = cv.bilateralFilter(output,3,45,45)
+            output = cv.bilateralFilter(output, 3, 45, 45)
         elif self.strength == 3:
-            output = cv.bilateralFilter(output,5,60,60)
+            output = cv.bilateralFilter(output, 5, 60, 60)
 
         self.last_input = frame
         self.last_output = output
