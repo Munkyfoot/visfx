@@ -271,6 +271,7 @@ class FaceDetect(Layer):
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
 
         for (x, y, w, h) in faces:
+            (x,y,w,h) = (max(0,x - (w // 8)),max(0,y - (h // 8)),min(width, w + (w // 4)),min(height, h + (h // 4)))
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = output[y:y+h, x:x+w]
 
