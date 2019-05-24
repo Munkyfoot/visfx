@@ -10,9 +10,9 @@ FX = visfx.Stack(
         visfx.effects.FaceDetect(),
         visfx.effects.RemoveBG(),
         visfx.effects.Ghost(),
+        visfx.effects.ColorFilter(),
         visfx.effects.Symmetry(),
-        visfx.effects.Tracers(),
-        visfx.effects.ColorFilter()
+        visfx.effects.Tracers()        
     ]
 )
 

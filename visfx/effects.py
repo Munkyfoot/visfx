@@ -282,7 +282,7 @@ class FaceDetect(Layer):
                     pixelized, (w, h), interpolation=cv.INTER_NEAREST)
                 output[y:y+h, x:x+w] = pixelized
             else:
-                cv.rectangle(output, (x, y), (x+w, y+h), (200, 200, 200), 1)
+                cv.rectangle(output, (x, y), (x+w, y+h), (200, 200, 200), 2)
 
         self.last_input = frame
         self.last_output = output
@@ -301,7 +301,8 @@ class ColorFilter(Layer):
         super().__init__()
         self.type = 'Color Filter'
         self.filters = ['Grayscale', 'Sepia', 'Invert',
-                        'Red Pass', 'Green Pass', 'Blue Pass']
+                        'Red Pass', 'Green Pass', 'Blue Pass',
+                        'Two Tone']
         self.filter_id = 0
         self.tooltips = ["Press 'F' to change color filter"]
         self.readouts = ["Color Filter: {}".format(
@@ -362,6 +363,14 @@ class ColorFilter(Layer):
             mask = cv.inRange(hsv, lower, upper)
 
             output[mask == 0] = grayscale[mask == 0]
+        elif color_filter == 'Two Tone':
+            lower = np.array([128, 128, 128])
+            upper = np.array([255, 255, 255])
+
+            mask = cv.inRange(grayscale, lower, upper)
+            mask = cv.medianBlur(mask, 3)
+
+            output = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
 
         self.last_input = frame
         self.last_output = output
