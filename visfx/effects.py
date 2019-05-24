@@ -271,7 +271,8 @@ class FaceDetect(Layer):
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
 
         for (x, y, w, h) in faces:
-            (x,y,w,h) = (max(0,x - (w // 8)),max(0,y - (h // 8)),min(width, w + (w // 4)),min(height, h + (h // 4)))
+            (x, y, w, h) = (max(0, x - (w // 8)), max(0, y - (h // 8)),
+                            min(width, w + (w // 4)), min(height, h + (h // 4)))
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = output[y:y+h, x:x+w]
 
@@ -291,3 +292,85 @@ class FaceDetect(Layer):
         if key == ord('p'):
             self.pixelize = not self.pixelize
             self.readouts[0] = "Pixelize Faces: {}".format(str(self.pixelize))
+
+
+class ColorFilter(Layer):
+    '''Visual FX Layer (Color Filter)'''
+
+    def __init__(self):
+        super().__init__()
+        self.type = 'Color Filter'
+        self.filters = ['Grayscale', 'Sepia', 'Invert',
+                        'Red Pass', 'Green Pass', 'Blue Pass']
+        self.filter_id = 0
+        self.tooltips = ["Press 'F' to change color filter"]
+        self.readouts = ["Color Filter: {}".format(
+            self.filters[self.filter_id])]
+
+    def apply(self, frame):
+        output = frame.copy()
+        height, width, channels = output.shape
+
+        gray = cv.cvtColor(output, cv.COLOR_BGR2GRAY)
+        grayscale = cv.cvtColor(gray, cv.COLOR_GRAY2BGR)
+
+        color_filter = self.filters[self.filter_id]
+
+        if color_filter == 'Grayscale':
+            output = grayscale
+        if color_filter == 'Sepia':
+            sepia = np.array(
+                [
+                    [0.272, 0.534, 0.131],
+                    [0.349, 0.686, 0.168],
+                    [0.393, 0.769, 0.189]
+                ]
+            )
+
+            output = cv.transform(output, sepia)
+        elif color_filter == 'Invert':
+            output = 255-output
+        elif color_filter == 'Red Pass':
+            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
+
+            lower = np.array([0, 32, 16])
+            upper = np.array([9, 255, 255])
+
+            lower_a = np.array([169, 32, 16])
+            upper_b = np.array([179, 255, 255])
+
+            mask = cv.inRange(hsv, lower, upper)
+            mask = cv.addWeighted(mask, 1.0, cv.inRange(
+                hsv, lower, upper), 1.0, 0.0)
+
+            output[mask == 0] = grayscale[mask == 0]
+        elif color_filter == 'Green Pass':
+            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
+
+            lower = np.array([40, 32, 16])
+            upper = np.array([88, 255, 255])
+
+            mask = cv.inRange(hsv, lower, upper)
+
+            output[mask == 0] = grayscale[mask == 0]
+        elif color_filter == 'Blue Pass':
+            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
+
+            lower = np.array([92, 32, 16])
+            upper = np.array([128, 255, 255])
+
+            mask = cv.inRange(hsv, lower, upper)
+
+            output[mask == 0] = grayscale[mask == 0]
+
+        self.last_input = frame
+        self.last_output = output
+        return output
+
+    def userInput(self, key):
+        if key == ord('f'):
+            self.filter_id += 1
+            if self.filter_id >= len(self.filters):
+                self.filter_id = 0
+            self.readouts[0] = "Color Filter: {}".format(
+                self.filters[self.filter_id])

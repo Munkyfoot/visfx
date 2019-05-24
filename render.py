@@ -11,7 +11,8 @@ FX = visfx.Stack(
         visfx.effects.RemoveBG(),
         visfx.effects.Ghost(),
         visfx.effects.Symmetry(),
-        visfx.effects.Tracers()
+        visfx.effects.Tracers(),
+        visfx.effects.ColorFilter()
     ]
 )
 
