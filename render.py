@@ -7,6 +7,7 @@ import visfx
 FX = visfx.Stack(
     [
         visfx.effects.Denoise(),
+        visfx.effects.FaceDetect(),
         visfx.effects.RemoveBG(),
         visfx.effects.Ghost(),
         visfx.effects.Symmetry(),

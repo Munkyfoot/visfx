@@ -1,5 +1,7 @@
 import numpy as np
 import cv2 as cv
+import os
+import sys
 
 
 class Layer:
@@ -81,7 +83,7 @@ class RemoveBG(Layer):
             flatmask = np.zeros((height, width), output.dtype)
             flatmask = cv.max(mask[:, :, 0], mask[:, :, 1])
             flatmask = cv.max(flatmask, mask[:, :, 2])
-            
+
             if self.show_bg:
                 output[flatmask == 0] = self.background[flatmask == 0]
             else:
@@ -247,3 +249,44 @@ class Symmetry(Layer):
 
             if self.mode >= 3:
                 self.mode = 0
+
+
+class FaceDetect(Layer):
+    '''Visual FX Layer (Face Detection)'''
+
+    def __init__(self):
+        super().__init__()
+        self.type = 'Face Detection'
+        self.face_cascade = cv.CascadeClassifier(os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'cascades', 'standard', 'haarcascade_frontalface_default.xml'))
+        self.pixelize = False
+        self.tooltips = ["Press 'P' to pixelize faces"]
+        self.readouts = ["Pixelize Faces: {}".format(str(self.pixelize))]
+
+    def apply(self, frame):
+        output = frame.copy()
+        height, width, channels = output.shape
+
+        gray = cv.cvtColor(output, cv.COLOR_BGR2GRAY)
+        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
+
+        for (x, y, w, h) in faces:
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = output[y:y+h, x:x+w]
+
+            if self.pixelize:
+                pixelized = cv.resize(roi_color, (w // 16, h // 16))
+                pixelized = cv.resize(
+                    pixelized, (w, h), interpolation=cv.INTER_NEAREST)
+                output[y:y+h, x:x+w] = pixelized
+            else:
+                cv.rectangle(output, (x, y), (x+w, y+h), (200, 200, 200), 1)
+
+        self.last_input = frame
+        self.last_output = output
+        return output
+
+    def userInput(self, key):
+        if key == ord('p'):
+            self.pixelize = not self.pixelize
+            self.readouts[0] = "Pixelize Faces: {}".format(str(self.pixelize))
