@@ -76,18 +76,27 @@ class RemoveBG(Layer):
             self.history.remove(self.history[0])
 
         if self.background is not None:
-            mask = np.zeros_like(output)
-            mask[cv.absdiff(output, self.background) >
-                 255 * self.threshold] = 255
+            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
+            hsv_bg = cv.cvtColor(self.background, cv.COLOR_BGR2HSV)
 
-            flatmask = np.zeros((height, width), output.dtype)
-            flatmask = cv.max(mask[:, :, 0], mask[:, :, 1])
-            flatmask = cv.max(flatmask, mask[:, :, 2])
+            mask = cv.absdiff(hsv, hsv_bg)
+
+            hue = hsv[:, :, 0]
+            sat = hsv[:, :, 1]
+            val = hsv[:, :, 2]
+
+            hueDiff = mask[:, :, 0] / 179
+            satDiff = mask[:, :, 1] / 255
+            valDiff = mask[:, :, 2] / 255
+
+            maxDiff = cv.max(satDiff, valDiff)
+            maxDiffTotal = cv.max(maxDiff, hueDiff)
+            maxDiff[sat > 96] = maxDiffTotal[sat > 96]
 
             if self.show_bg:
-                output[flatmask == 0] = self.background[flatmask == 0]
+                output[maxDiff < self.threshold] = self.background[maxDiff < self.threshold]
             else:
-                output[flatmask == 0] = 0
+                output[maxDiff < self.threshold] = 0
 
         self.last_input = frame
         self.last_output = output
@@ -95,18 +104,18 @@ class RemoveBG(Layer):
 
     def userInput(self, key):
         if key == ord('b'):
-            average = self.history[-1]
-            for frame in self.history[:-1]:
-                average = cv.addWeighted(average, 0.5, frame, 0.5, 1)
-            self.background = average
+            #average = self.history[-1]
+            #for frame in self.history[:-1]:
+            #    average = cv.addWeighted(average, 0.5, frame, 0.5, 1)
+            self.background = self.last_input
 
         if key == ord('c'):
             self.background = None
 
         if key == ord('t'):
-            self.threshold += 0.1
+            self.threshold += 0.05
             if self.threshold > 1:
-                self.threshold = 0.1
+                self.threshold = 0.05
             self.readouts[0] = "BG Detection Threshold:{}".format(
                 self.threshold)
 
