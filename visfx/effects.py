@@ -84,7 +84,7 @@ class RemoveBG(Layer):
             diff = cv.max(diff, mask[:, :, 2])
             diff[diff < self.threshold] = 0
             diff = cv.min(1, diff / (self.threshold + 32))
-            diff = cv.blur(diff, (3,3))
+            diff = cv.blur(diff, (3, 3))
 
             if self.show_bg:
                 output[:, :, 0] = (self.background[:, :, 0] * (1 - diff)) + (

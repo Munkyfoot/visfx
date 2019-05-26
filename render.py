@@ -22,7 +22,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
 cap = cv.VideoCapture(0)
 
 fourcc = cv.VideoWriter_fourcc(*'XVID')
-out = cv.VideoWriter('output.avi',fourcc, 20.0, gui.size())
+out = cv.VideoWriter('output.avi', fourcc, 20.0, gui.size())
 
 RECORDING = False
 
@@ -85,7 +85,7 @@ while True:
     if RECORDING:
         out.write(output)
         cv.putText(output, "Recording...", (height // 10,
-                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+                                            height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 10
 
     # Display the resulting frame
