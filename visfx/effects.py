@@ -82,21 +82,24 @@ class RemoveBG(Layer):
             diff = cv.max(diff, mask[:, :, 0])
             diff = cv.max(diff, mask[:, :, 1])
             diff = cv.max(diff, mask[:, :, 2])
+            diff[diff < self.threshold] = 0
+            diff = cv.min(1, diff / (self.threshold + 32))
+            diff = cv.blur(diff, (3,3))
 
             if self.show_bg:
-                output[:, :, 0] = (self.background[:, :, 0] * (1 - cv.min(1, diff / self.threshold))) + (
-                    output[:, :, 0] * cv.min(1, diff / self.threshold))
-                output[:, :, 1] = (self.background[:, :, 1] * (1 - cv.min(1, diff / self.threshold))) + (
-                    output[:, :, 1] * cv.min(1, diff / self.threshold))
-                output[:, :, 2] = (self.background[:, :, 2] * (1 - cv.min(1, diff / self.threshold))) + (
-                    output[:, :, 2] * cv.min(1, diff / self.threshold))
+                output[:, :, 0] = (self.background[:, :, 0] * (1 - diff)) + (
+                    output[:, :, 0] * diff)
+                output[:, :, 1] = (self.background[:, :, 1] * (1 - diff)) + (
+                    output[:, :, 1] * diff)
+                output[:, :, 2] = (self.background[:, :, 2] * (1 - diff)) + (
+                    output[:, :, 2] * diff)
             else:
                 output[:, :, 0] = output[:, :, 0] * \
-                    cv.min(1, diff / self.threshold)
+                    diff
                 output[:, :, 1] = output[:, :, 1] * \
-                    cv.min(1, diff / self.threshold)
+                    diff
                 output[:, :, 2] = output[:, :, 2] * \
-                    cv.min(1, diff / self.threshold)
+                    diff
 
         self.last_input = frame
         self.last_output = output
@@ -107,7 +110,7 @@ class RemoveBG(Layer):
             average = self.history[-1]
             for frame in self.history[:-1]:
                 average = cv.addWeighted(average, 0.5, frame, 0.5, 1)
-            self.background = cv.bilateralFilter(average, 5, 45, 45)
+            self.background = average
 
         if key == ord('c'):
             self.background = None
