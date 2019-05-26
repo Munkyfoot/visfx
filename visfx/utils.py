@@ -58,7 +58,7 @@ class Stack:
             else:
                 status = "OFF"
 
-            layerNames.append("{}-{} {}".format(l + 1, self.layers[l].type, status))
-                
+            layerNames.append(
+                "{}-{} {}".format(l + 1, self.layers[l].type, status))
 
         return layerNames
