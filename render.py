@@ -21,6 +21,11 @@ SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
 # Capture default camera
 cap = cv.VideoCapture(0)
 
+fourcc = cv.VideoWriter_fourcc(*'XVID')
+out = cv.VideoWriter('output.avi',fourcc, 20.0, gui.size())
+
+RECORDING = False
+
 if not cap.isOpened():
     print("Unable to connect to camera. Closing the program...")
     exit()
@@ -77,6 +82,12 @@ while True:
                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 10
 
+    if RECORDING:
+        out.write(output)
+        cv.putText(output, "Recording...", (height // 10,
+                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 10
+
     # Display the resulting frame
     cv.namedWindow('frame', cv.WINDOW_NORMAL)
     cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
@@ -87,7 +98,8 @@ while True:
     if key == ord('q'):
         # Close window if 'q' is pressed
         break
-
+    if key == ord('r'):
+        RECORDING = not RECORDING
     # Pass keypress to the FX Stack
     FX.userInput(key)
 

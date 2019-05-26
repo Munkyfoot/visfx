@@ -25,7 +25,8 @@ class Stack:
                 layer.userInput(key)
 
     def getTooltips(self):
-        tooltips = ["Press 'Q' to quit"]
+        tooltips = ["Press 'Q' to quit",
+                    "Press 'R' to record"]
         for layer in self.layers:
             if layer.active:
                 try:
