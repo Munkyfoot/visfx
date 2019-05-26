@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 import os
 import sys
+import time
 
 
 class Layer:
@@ -20,6 +21,27 @@ class Layer:
 
     def userInput(self, key):
         pass
+
+
+class MoveDetect(Layer):
+    '''Visual FX Layer (Movement Detection)'''
+
+    def __init__(self):
+        super().__init__()
+        self.type = 'Movement Detection'
+
+    def apply(self, frame):
+        output = frame.copy()
+        height, width, channels = output.shape
+
+        try:
+            output = cv.absdiff(self.last_input, frame)
+        except:
+            pass
+
+        self.last_input = frame
+        self.last_output = output
+        return output
 
 
 class Ghost(Layer):
