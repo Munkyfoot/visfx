@@ -59,7 +59,7 @@ class RemoveBG(Layer):
         self.type = 'Remove BG'
         self.background = None
         self.show_bg = False
-        self.threshold = 0.1
+        self.threshold = 32
         self.history = []
         self.tooltips = ["Press 'B' to set the background",
                          "Press 'C' to clear background",
@@ -72,31 +72,25 @@ class RemoveBG(Layer):
         height, width, channels = output.shape
 
         self.history.append(frame)
-        if len(self.history) > 60:
+        if len(self.history) > 12:
             self.history.remove(self.history[0])
 
         if self.background is not None:
-            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
-            hsv_bg = cv.cvtColor(self.background, cv.COLOR_BGR2HSV)
+            mask = cv.absdiff(frame, self.background)
 
-            mask = cv.absdiff(hsv, hsv_bg)
-
-            hue = hsv[:, :, 0]
-            sat = hsv[:, :, 1]
-            val = hsv[:, :, 2]
-
-            hueDiff = mask[:, :, 0] / 179
-            satDiff = mask[:, :, 1] / 255
-            valDiff = mask[:, :, 2] / 255
-
-            maxDiff = cv.max(satDiff, valDiff)
-            maxDiffTotal = cv.max(maxDiff, hueDiff)
-            maxDiff[sat > 96] = maxDiffTotal[sat > 96]
+            diff = np.zeros_like(mask[:,:,0])
+            diff = cv.max(diff, mask[:,:,0])
+            diff = cv.max(diff, mask[:,:,1])
+            diff = cv.max(diff, mask[:,:,2])            
 
             if self.show_bg:
-                output[maxDiff < self.threshold] = self.background[maxDiff < self.threshold]
+                output[:,:,0] = (self.background[:,:,0] * (1 - cv.min(1, diff / self.threshold))) + (output[:,:,0] * cv.min(1, diff / self.threshold))
+                output[:,:,1] = (self.background[:,:,1] * (1 - cv.min(1, diff / self.threshold))) + (output[:,:,1] * cv.min(1, diff / self.threshold))
+                output[:,:,2] = (self.background[:,:,2] * (1 - cv.min(1, diff / self.threshold))) + (output[:,:,2] * cv.min(1, diff / self.threshold))
             else:
-                output[maxDiff < self.threshold] = 0
+                output[:,:,0] = output[:,:,0] * cv.min(1, diff / self.threshold)
+                output[:,:,1] = output[:,:,1] * cv.min(1, diff / self.threshold)
+                output[:,:,2] = output[:,:,2] * cv.min(1, diff / self.threshold)
 
         self.last_input = frame
         self.last_output = output
@@ -104,18 +98,18 @@ class RemoveBG(Layer):
 
     def userInput(self, key):
         if key == ord('b'):
-            #average = self.history[-1]
-            #for frame in self.history[:-1]:
-            #    average = cv.addWeighted(average, 0.5, frame, 0.5, 1)
-            self.background = self.last_input
+            average = self.history[-1]
+            for frame in self.history[:-1]:
+                average = cv.addWeighted(average, 0.5, frame, 0.5, 1)
+            self.background = cv.bilateralFilter(average, 5, 45, 45)
 
         if key == ord('c'):
             self.background = None
 
         if key == ord('t'):
-            self.threshold += 0.05
-            if self.threshold > 1:
-                self.threshold = 0.05
+            self.threshold += 4
+            if self.threshold > 255:
+                self.threshold = 4
             self.readouts[0] = "BG Detection Threshold:{}".format(
                 self.threshold)
 
@@ -183,9 +177,9 @@ class Denoise(Layer):
             pass
 
         if self.strength == 2:
-            output = cv.bilateralFilter(output, 3, 45, 45)
+            output = cv.bilateralFilter(output, 5, 45, 45)
         elif self.strength == 3:
-            output = cv.bilateralFilter(output, 5, 60, 60)
+            output = cv.bilateralFilter(output, 9, 60, 60)   
 
         self.last_input = frame
         self.last_output = output
@@ -311,7 +305,7 @@ class ColorFilter(Layer):
         self.type = 'Color Filter'
         self.filters = ['Grayscale', 'Sepia', 'Invert',
                         'Red Pass', 'Green Pass', 'Blue Pass',
-                        'Two Tone']
+                        'Two Tone', 'Colormap']
         self.filter_id = 0
         self.tooltips = ["Press 'F' to change color filter"]
         self.readouts = ["Color Filter: {}".format(
@@ -380,6 +374,12 @@ class ColorFilter(Layer):
             mask = cv.medianBlur(mask, 3)
 
             output = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
+        elif color_filter == 'Colormap':
+            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
+
+            output[:,:,0] = 255 - hsv[:,:,2]
+            output[:,:,1] = hsv[:,:,1]
+            output[:,:,2] = hsv[:,:,2]
 
         self.last_input = frame
         self.last_output = output

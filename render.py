@@ -40,13 +40,13 @@ while True:
     # Resize and pad output to fit screen
     height, width, channels = output.shape
     ratio = SCREEN_HEIGHT / height
-
     rescale = tuple([int(x*ratio) for x in (height, width)])
 
-    output = cv.resize(output, (rescale[1], rescale[0]), cv.INTER_CUBIC)
-    border_size = int((SCREEN_WIDTH - rescale[1]) * 0.5)
+    output = cv.resize(output, (rescale[1], rescale[0]))
+    border_size_x = int((SCREEN_WIDTH - rescale[1]) * 0.5)
+    border_size_y = int((SCREEN_HEIGHT - rescale[0]) * 0.5)
     output = cv.copyMakeBorder(
-        output, 0, 0, border_size, border_size, cv.BORDER_CONSTANT, value=[0, 0, 0])
+        output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
 
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
