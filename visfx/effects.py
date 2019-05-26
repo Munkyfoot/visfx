@@ -341,23 +341,18 @@ class ColorFilter(Layer):
         elif color_filter == 'Invert':
             output = 255-output
         elif color_filter == 'Red Pass':
-            hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
+            hsv = cv.cvtColor(~output, cv.COLOR_BGR2HSV)
 
-            lower = np.array([0, 32, 16])
-            upper = np.array([9, 255, 255])
-
-            lower_a = np.array([169, 32, 16])
-            upper_b = np.array([179, 255, 255])
+            lower = np.array([80, 48, 16])
+            upper = np.array([100, 255, 255])
 
             mask = cv.inRange(hsv, lower, upper)
-            mask = cv.addWeighted(mask, 1.0, cv.inRange(
-                hsv, lower, upper), 1.0, 0.0)
 
             output[mask == 0] = grayscale[mask == 0]
         elif color_filter == 'Green Pass':
             hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
 
-            lower = np.array([40, 32, 16])
+            lower = np.array([40, 48, 16])
             upper = np.array([88, 255, 255])
 
             mask = cv.inRange(hsv, lower, upper)
@@ -366,7 +361,7 @@ class ColorFilter(Layer):
         elif color_filter == 'Blue Pass':
             hsv = cv.cvtColor(output, cv.COLOR_BGR2HSV)
 
-            lower = np.array([92, 32, 16])
+            lower = np.array([92, 58, 16])
             upper = np.array([128, 255, 255])
 
             mask = cv.inRange(hsv, lower, upper)
