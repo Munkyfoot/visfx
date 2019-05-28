@@ -1,9 +1,10 @@
+import sys
+import time
+from datetime import datetime
 import numpy as np
 import cv2 as cv
 import pyautogui as gui
 import visfx
-import time
-import sys
 
 # Get sys args
 FULLSCREEN = False
@@ -42,8 +43,8 @@ ASPECT_RATIO = SCREEN_WIDTH / SCREEN_HEIGHT
 # Capture default camera
 cap = cv.VideoCapture(0)
 
-fourcc = cv.VideoWriter_fourcc(*'XVID')
-out = cv.VideoWriter('output.avi', fourcc, 20.0, gui.size())
+FOURCC = cv.VideoWriter_fourcc(*'XVID')
+OUT = None
 
 RECORDING = False
 
@@ -96,6 +97,9 @@ while True:
         # Apply FX Stack to frame
         output = FX.apply(frame)
 
+        if RECORDING:
+            OUT.write(output)
+
         # Resize and pad output to fit screen
         height, width, channels = output.shape
         if SCALE != 1:
@@ -109,11 +113,9 @@ while True:
             padded_output = np.zeros((height, padded_width, 3), output.dtype)
             padded_output[:, border_size:border_size+width] = output
             output = padded_output
-            # output = cv.copyMakeBorder(
-            #    output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
             height, width, channels = output.shape
 
-        # Add tooltips
+        # Display info
         font = cv.FONT_HERSHEY_SIMPLEX
         font_size = height / 2000
         offset = height // 100
@@ -147,7 +149,6 @@ while True:
             offset += height // 40
 
         if RECORDING:
-            out.write(output)
             cv.putText(output, "Recording...", (height // 100,
                                                 height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
             offset += height // 40
@@ -168,6 +169,13 @@ while True:
         break
     if key == ord('r'):
         RECORDING = not RECORDING
+        if RECORDING:
+            timestamp = datetime.now().isoformat(sep='@', timespec='seconds').replace(
+                ':', 'h', 1).replace(':', 'm', 1) + 's'
+            OUT = cv.VideoWriter('{}.avi'.format(
+                timestamp), FOURCC, 20, (frame.shape[1], frame.shape[0]))
+        else:
+            OUT = None
     # Pass keypress to the FX Stack
     FX.userInput(key)
 
