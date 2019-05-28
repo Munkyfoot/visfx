@@ -291,8 +291,13 @@ class FaceDetect(Layer):
     def __init__(self):
         super().__init__()
         self.type = 'Face Detection'
-        self.face_cascade = cv.CascadeClassifier(os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), 'cascades', 'standard', 'haarcascade_frontalface_default.xml'))
+        self.model_file = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
+        self.config_file = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
+        self.net = cv.dnn.readNetFromTensorflow(
+            self.model_file, self.config_file)
+        self.conf_threshold = 0.67
         self.pixelize = False
         self.tooltips = ["Press 'P' to pixelize faces"]
         self.readouts = ["Pixelize Faces: {}".format(str(self.pixelize))]
@@ -300,23 +305,39 @@ class FaceDetect(Layer):
     def apply(self, frame):
         output = frame.copy()
         height, width, channels = output.shape
+        blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
+                                    104, 117, 123], False, False)
 
-        gray = cv.cvtColor(output, cv.COLOR_BGR2GRAY)
-        faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
+        self.net.setInput(blob)
+        faces = self.net.forward()
+        for i in range(faces.shape[2]):
+            confidence = faces[0, 0, i, 2]
+            if confidence > self.conf_threshold:
+                x1 = int(faces[0, 0, i, 3] * width)
+                y1 = int(faces[0, 0, i, 4] * height)
+                x2 = int(faces[0, 0, i, 5] * width)
+                y2 = int(faces[0, 0, i, 6] * height)
 
-        for (x, y, w, h) in faces:
-            (x, y, w, h) = (max(0, x - (w // 8)), max(0, y - (h // 8)),
-                            min(width, w + (w // 4)), min(height, h + (h // 4)))
-            roi_gray = gray[y:y+h, x:x+w]
-            roi_color = output[y:y+h, x:x+w]
-
-            if self.pixelize:
-                pixelized = cv.resize(roi_color, (w // 16, h // 16))
-                pixelized = cv.resize(
-                    pixelized, (w, h), interpolation=cv.INTER_NEAREST)
-                output[y:y+h, x:x+w] = pixelized
-            else:
-                cv.rectangle(output, (x, y), (x+w, y+h), (200, 200, 200), 2)
+                if self.pixelize:
+                    w = x2 - x1
+                    h = y2 - y1
+                    y1_padded = max(0, y1 - h // 8)
+                    y2_padded = min(height, y2 + h // 8)
+                    x1_padded = max(0, x1 - w // 8)
+                    x2_padded = min(width, x2 + w // 8)
+                    w_padded = x2_padded - x1_padded
+                    h_padded = y2_padded - y1_padded
+                    roi = output[y1_padded:y2_padded, x1_padded:x2_padded]
+                    pixelized = cv.resize(roi, (w_padded // 16, h_padded // 16))
+                    pixelized = cv.resize(
+                        pixelized, (w_padded, h_padded), interpolation=cv.INTER_NEAREST)
+                    output[y1_padded:y2_padded, x1_padded:x2_padded] = pixelized
+                else:
+                    conf_readout = "{:.2f}%".format(confidence * 100)
+                    cv.putText(output, conf_readout, (x1, y1 - 5),
+                               cv.FONT_HERSHEY_SIMPLEX, 0.3, (64, 232, 64), 1, cv.LINE_AA)
+                    cv.rectangle(output, (x1, y1), (x2, y2),
+                                 (232, 64, 64), int(round(height/500)), 8)
 
         self.last_input = frame
         self.last_output = output

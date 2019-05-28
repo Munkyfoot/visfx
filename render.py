@@ -2,6 +2,7 @@ import numpy as np
 import cv2 as cv
 import pyautogui as gui
 import visfx
+import time
 
 # Create an FX Stack
 FX = visfx.Stack(
@@ -26,14 +27,20 @@ fourcc = cv.VideoWriter_fourcc(*'XVID')
 out = cv.VideoWriter('output.avi', fourcc, 20.0, gui.size())
 
 RECORDING = False
+LAST_OUTPUT_TIME = time.time()
 
 if not cap.isOpened():
     print("Unable to connect to camera. Closing the program...")
     exit()
 
 while True:
+    # Get processing time
+    ttp = time.time() - LAST_OUTPUT_TIME
+    LAST_OUTPUT_TIME = time.time()
+
     # Capture frame
     ret, frame = cap.read()
+    fps = cap.get(cv.CAP_PROP_FPS)
 
     # Check for frame errors
     if not ret:
@@ -57,6 +64,9 @@ while True:
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
     offset = 0
+    cv.putText(output, "{} FPS | TTP: {:.5f}ms".format(fps, ttp), (height // 10,
+                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+    offset += height // 10
     cv.putText(output, "FX Layers:", (height // 10,
                                       height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
     offset += height // 10
