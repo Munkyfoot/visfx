@@ -7,14 +7,20 @@ import sys
 
 # Get sys args
 FULLSCREEN = False
+SCALE = 1
 
-for arg in sys.argv[1:]:
+for i in range(len(sys.argv)):
+    arg = sys.argv[i]
     if arg == '-h' or arg == '--help':
         print("This scripts renders the default camera with an FX stack")
         print("Run with '-f' or '--fullscreen' to enable fullscreen")
+        print("Run with '-s' or '--scale' followed by a value to set scale. No effect in Fullscreen mode.")
         exit()
     elif arg == '-f' or arg == '--fullscreen':
         FULLSCREEN = True
+    elif arg == '-s' or arg == '--scale':
+        SCALE = float(sys.argv[i+1])
+        i += 1
 
 # Create an FX Stack
 FX = visfx.Stack(
@@ -86,7 +92,9 @@ while True:
         output = cv.copyMakeBorder(
             output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
         height, width, channels = output.shape
-
+    elif SCALE != 1:        
+        output = cv.resize(output, (int(width * SCALE), int(height * SCALE)))
+        height, width, channels = output.shape
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
     font_size = height / 2000
