@@ -14,7 +14,7 @@ for i in range(len(sys.argv)):
     if arg == '-h' or arg == '--help':
         print("This scripts renders the default camera with an FX stack")
         print("Run with '-f' or '--fullscreen' to enable fullscreen")
-        print("Run with '-s' or '--scale' followed by a value to set scale. No effect in Fullscreen mode.")
+        print("Run with '-s' or '--scale' followed by a value to set scale")
         exit()
     elif arg == '-f' or arg == '--fullscreen':
         FULLSCREEN = True
@@ -37,6 +37,7 @@ FX = visfx.Stack(
 )
 
 SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
+ASPECT_RATIO = SCREEN_WIDTH / SCREEN_HEIGHT
 
 # Capture default camera
 cap = cv.VideoCapture(0)
@@ -62,7 +63,7 @@ while True:
 
     ttp = time.time() - LAST_OUTPUT_TIME
     LAST_OUTPUT_TIME = time.time()
-    
+
     fps_out = 1 / max(0.00001, ttp)
     FPS_OUT_HISTORY.append(fps_out)
     avg_fps_out = 0
@@ -96,29 +97,31 @@ while True:
         output = FX.apply(frame)
 
         # Resize and pad output to fit screen
-        height, width, channels = output.shape    
+        height, width, channels = output.shape
+        if SCALE != 1:
+            output = cv.resize(
+                output, (int(width * SCALE), int(height * SCALE)))
+            height, width, channels = output.shape
 
         if FULLSCREEN:
-            ratio = SCREEN_HEIGHT / height
-            rescale = tuple([int(x*ratio) for x in (height, width)])
-            output = cv.resize(output, (rescale[1], rescale[0]))
-            border_size_x = int((SCREEN_WIDTH - rescale[1]) * 0.5)
-            border_size_y = int((SCREEN_HEIGHT - rescale[0]) * 0.5)
-            output = cv.copyMakeBorder(
-                output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
+            padded_width = int(height * ASPECT_RATIO)
+            border_size = int((padded_width - width) * 0.5)
+            padded_output = np.zeros((height, padded_width, 3), output.dtype)
+            padded_output[:, border_size:border_size+width] = output
+            output = padded_output
+            # output = cv.copyMakeBorder(
+            #    output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
             height, width, channels = output.shape
-        elif SCALE != 1:        
-            output = cv.resize(output, (int(width * SCALE), int(height * SCALE)))
-            height, width, channels = output.shape
+
         # Add tooltips
         font = cv.FONT_HERSHEY_SIMPLEX
         font_size = height / 2000
         offset = height // 100
         cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, avg_fps_out), (height // 100,
-                                                                                        height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+                                                                                            height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 40
         cv.putText(output, "FX Layers:", (height // 100,
-                                        height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+                                          height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 40
 
         for name in FX.getLayerNames():
@@ -128,19 +131,19 @@ while True:
                 color = (128, 128, 255)
 
             cv.putText(output, name, (height // 100,
-                                    height // 100 + offset), font, font_size, color, 1, cv.LINE_AA)
+                                      height // 100 + offset), font, font_size, color, 1, cv.LINE_AA)
             offset += height // 40
 
         offset += height // 40
         for tip in FX.getTooltips():
             cv.putText(output, tip, (height // 100,
-                                    height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+                                     height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
             offset += height // 40
 
         offset += height // 40
         for readout in FX.getReadouts():
             cv.putText(output, readout, (height // 100,
-                                        height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+                                         height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
             offset += height // 40
 
         if RECORDING:
@@ -150,12 +153,13 @@ while True:
             offset += height // 40
 
         LAST_OUTPUT = output
-    
+
     # Display the resulting frame
     if FULLSCREEN:
-        cv.namedWindow('frame', cv.WINDOW_NORMAL)
-        cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
-    cv.imshow('frame', output)
+        cv.namedWindow('VisFX Render', cv.WINDOW_NORMAL)
+        cv.setWindowProperty(
+            'VisFX Render', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+    cv.imshow('VisFX Render', output)
 
     # Get key press
     key = cv.waitKey(1)
