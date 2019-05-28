@@ -1,5 +1,6 @@
 import numpy as np
 import cv2 as cv
+import dlib
 import os
 import sys
 import time
@@ -293,16 +294,23 @@ class FaceDetect(Layer):
         self.type = 'Face Detection'
         self.method = 0
         self.model_file = os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
+            __file__)), 'face-detection', 'opencv', 'opencv_face_detector_uint8.pb')
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
+            __file__)), 'face-detection', 'opencv', 'opencv_face_detector.pbtxt')
         self.network = cv.dnn.readNetFromTensorflow(
             self.model_file, self.config_file)
         self.conf_threshold = 0.67
+        self.detect_facemarks = False
+        self.predictor_file = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'face-detection', 'dlib', 'shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor(self.predictor_file)
         self.pixelize = False
         self.tooltips = ["Press 'N' to change detection method",
+                         "Press 'L' to detect facial landmarks",
                          "Press 'P' to pixelize faces"]
-        self.readouts = ["Face Detect Method: Tensor Flow",
+        self.readouts = ["Face Detect Method: OpenCV - Tensor Flow",
+                         "Detect Facemarks: {}".format(
+                             str(self.detect_facemarks)),
                          "Pixelize Faces: {}".format(str(self.pixelize))]
 
     def apply(self, frame):
@@ -313,6 +321,7 @@ class FaceDetect(Layer):
 
         self.network.setInput(blob)
         faces = self.network.forward()
+
         for i in range(faces.shape[2]):
             confidence = faces[0, 0, i, 2]
             if confidence > self.conf_threshold:
@@ -320,29 +329,43 @@ class FaceDetect(Layer):
                 y1 = int(faces[0, 0, i, 4] * height)
                 x2 = int(faces[0, 0, i, 5] * width)
                 y2 = int(faces[0, 0, i, 6] * height)
+                w = x2 - x1
+                h = y2 - y1
+
+                y1_padded = max(0, y1 - h // 16)
+                y2_padded = min(height, y2 + h // 16)
+                x1_padded = max(0, x1 - w // 8)
+                x2_padded = min(width, x2 + w // 8)
+                w_padded = x2_padded - x1_padded
+                h_padded = y2_padded - y1_padded
 
                 if self.pixelize:
-                    w = x2 - x1
-                    h = y2 - y1
-                    y1_padded = max(0, y1 - h // 8)
-                    y2_padded = min(height, y2 + h // 8)
-                    x1_padded = max(0, x1 - w // 8)
-                    x2_padded = min(width, x2 + w // 8)
-                    w_padded = x2_padded - x1_padded
-                    h_padded = y2_padded - y1_padded
-                    roi = output[y1_padded:y2_padded, x1_padded:x2_padded]
+                    padded_roi = output[y1_padded:y2_padded,
+                                        x1_padded:x2_padded]
                     pixelized = cv.resize(
-                        roi, (w_padded // 16, h_padded // 16))
+                        padded_roi, (w_padded // 16, h_padded // 16))
                     pixelized = cv.resize(
                         pixelized, (w_padded, h_padded), interpolation=cv.INTER_NEAREST)
                     output[y1_padded:y2_padded,
                            x1_padded:x2_padded] = pixelized
                 else:
                     conf_readout = "{:.2f}%".format(confidence * 100)
-                    cv.putText(output, conf_readout, (x1, y1 - 5),
+                    cv.putText(output, conf_readout, (x1_padded, y1_padded - 5),
                                cv.FONT_HERSHEY_SIMPLEX, 0.3, (64, 232, 64), 1, cv.LINE_AA)
-                    cv.rectangle(output, (x1, y1), (x2, y2),
+                    cv.rectangle(output, (x1_padded, y1_padded), (x2_padded, y2_padded),
                                  (232, 64, 64), int(round(height/500)), 8)
+
+                if self.detect_facemarks:
+                    rect = dlib.rectangle(
+                        x1_padded, y1_padded, x2_padded, y2_padded)
+                    shape = self.predictor(output, rect)
+                    coords = np.zeros((68, 2), 'int32')
+                    for u in range(68):
+                        coords[u] = (shape.part(u).x, shape.part(u).y)
+
+                    for (x, y) in coords:
+                        cv.circle(output, (x, y), 1, (0, 0, 255), -1)
+
         self.last_input = frame
         self.last_output = output
         return output
@@ -352,28 +375,34 @@ class FaceDetect(Layer):
             self.method += 1
             if self.method > 1:
                 self.method = 0
-            method_name = ["Tensor Flow", "Caffe"][self.method]
+            method_name = ["OpenCV - Tensor Flow",
+                           "OpenCV - Caffe"][self.method]
 
             if self.method == 0:
                 self.model_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
+                    __file__)), 'face-detection', 'opencv', 'opencv_face_detector_uint8.pb')
                 self.config_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
+                    __file__)), 'face-detection', 'opencv', 'opencv_face_detector.pbtxt')
                 self.network = cv.dnn.readNetFromTensorflow(
                     self.model_file, self.config_file)
             else:
                 self.model_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'res10_300x300_ssd_iter_140000_fp16.caffemodel')
+                    __file__)), 'face-detection', 'opencv', 'res10_300x300_ssd_iter_140000_fp16.caffemodel')
                 self.config_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'deploy.prototxt')
+                    __file__)), 'face-detection', 'opencv', 'deploy.prototxt')
                 self.network = cv.dnn.readNetFromCaffe(
                     self.config_file, self.model_file)
 
             self.readouts[0] = "Face Detect Method: {}".format(method_name)
 
+        if key == ord('l'):
+            self.detect_facemarks = not self.detect_facemarks
+            self.readouts[1] = "Detet Facemarks: {}".format(
+                str(self.detect_facemarks))
+
         if key == ord('p'):
             self.pixelize = not self.pixelize
-            self.readouts[1] = "Pixelize Faces: {}".format(str(self.pixelize))
+            self.readouts[2] = "Pixelize Faces: {}".format(str(self.pixelize))
 
 
 class ColorFilter(Layer):
