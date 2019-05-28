@@ -328,10 +328,12 @@ class FaceDetect(Layer):
                     w_padded = x2_padded - x1_padded
                     h_padded = y2_padded - y1_padded
                     roi = output[y1_padded:y2_padded, x1_padded:x2_padded]
-                    pixelized = cv.resize(roi, (w_padded // 16, h_padded // 16))
+                    pixelized = cv.resize(
+                        roi, (w_padded // 16, h_padded // 16))
                     pixelized = cv.resize(
                         pixelized, (w_padded, h_padded), interpolation=cv.INTER_NEAREST)
-                    output[y1_padded:y2_padded, x1_padded:x2_padded] = pixelized
+                    output[y1_padded:y2_padded,
+                           x1_padded:x2_padded] = pixelized
                 else:
                     conf_readout = "{:.2f}%".format(confidence * 100)
                     cv.putText(output, conf_readout, (x1, y1 - 5),

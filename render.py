@@ -35,12 +35,13 @@ if not cap.isOpened():
 
 while True:
     # Get processing time
+    fps_in = cap.get(cv.CAP_PROP_FPS)
     ttp = time.time() - LAST_OUTPUT_TIME
     LAST_OUTPUT_TIME = time.time()
+    fps_out = 1 / max(0.00001, ttp)
 
     # Capture frame
     ret, frame = cap.read()
-    fps = cap.get(cv.CAP_PROP_FPS)
 
     # Check for frame errors
     if not ret:
@@ -64,8 +65,8 @@ while True:
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
     offset = 0
-    cv.putText(output, "{} FPS | TTP: {:.5f}ms".format(fps, ttp), (height // 10,
-                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
+    cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, fps_out), (height // 10,
+                                                                                    height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
     offset += height // 10
     cv.putText(output, "FX Layers:", (height // 10,
                                       height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
