@@ -45,6 +45,9 @@ fourcc = cv.VideoWriter_fourcc(*'XVID')
 out = cv.VideoWriter('output.avi', fourcc, 20.0, gui.size())
 
 RECORDING = False
+
+LAST_INPUT = None
+LAST_OUTPUT = None
 LAST_OUTPUT_TIME = time.time()
 
 FPS_OUT_HISTORY = []
@@ -68,6 +71,7 @@ while True:
     for f in FPS_OUT_HISTORY:
         avg_fps_out += f
     avg_fps_out /= len(FPS_OUT_HISTORY)
+    avg_fps_out = min(fps_in, avg_fps_out)
 
     # Capture frame
     ret, frame = cap.read()
@@ -77,62 +81,75 @@ while True:
         print("Unable to properly read frame. Closing the program...")
         break
 
-    # Apply FX Stack to frame
-    output = FX.apply(frame)
+    frame_diff = 0
+    if LAST_INPUT is not None:
+        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        last_gray = cv.cvtColor(LAST_INPUT, cv.COLOR_BGR2GRAY)
 
-    # Resize and pad output to fit screen
-    height, width, channels = output.shape    
+        frame_diff = cv.absdiff(gray, last_gray).max()
+    LAST_INPUT = frame
 
-    if FULLSCREEN:
-        ratio = SCREEN_HEIGHT / height
-        rescale = tuple([int(x*ratio) for x in (height, width)])
-        output = cv.resize(output, (rescale[1], rescale[0]))
-        border_size_x = int((SCREEN_WIDTH - rescale[1]) * 0.5)
-        border_size_y = int((SCREEN_HEIGHT - rescale[0]) * 0.5)
-        output = cv.copyMakeBorder(
-            output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
-        height, width, channels = output.shape
-    elif SCALE != 1:        
-        output = cv.resize(output, (int(width * SCALE), int(height * SCALE)))
-        height, width, channels = output.shape
-    # Add tooltips
-    font = cv.FONT_HERSHEY_SIMPLEX
-    font_size = height / 2000
-    offset = height // 100
-    cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, avg_fps_out), (height // 100,
-                                                                                    height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
-    offset += height // 40
-    cv.putText(output, "FX Layers:", (height // 100,
-                                      height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
-    offset += height // 40
+    if frame_diff == 0 and LAST_OUTPUT is not None:
+        output = LAST_OUTPUT
+    else:
+        # Apply FX Stack to frame
+        output = FX.apply(frame)
 
-    for name in FX.getLayerNames():
-        if 'ON' in name:
-            color = (128, 255, 128)
-        else:
-            color = (128, 128, 255)
+        # Resize and pad output to fit screen
+        height, width, channels = output.shape    
 
-        cv.putText(output, name, (height // 100,
-                                  height // 100 + offset), font, font_size, color, 1, cv.LINE_AA)
+        if FULLSCREEN:
+            ratio = SCREEN_HEIGHT / height
+            rescale = tuple([int(x*ratio) for x in (height, width)])
+            output = cv.resize(output, (rescale[1], rescale[0]))
+            border_size_x = int((SCREEN_WIDTH - rescale[1]) * 0.5)
+            border_size_y = int((SCREEN_HEIGHT - rescale[0]) * 0.5)
+            output = cv.copyMakeBorder(
+                output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
+            height, width, channels = output.shape
+        elif SCALE != 1:        
+            output = cv.resize(output, (int(width * SCALE), int(height * SCALE)))
+            height, width, channels = output.shape
+        # Add tooltips
+        font = cv.FONT_HERSHEY_SIMPLEX
+        font_size = height / 2000
+        offset = height // 100
+        cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, avg_fps_out), (height // 100,
+                                                                                        height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 40
+        cv.putText(output, "FX Layers:", (height // 100,
+                                        height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 40
 
-    offset += height // 40
-    for tip in FX.getTooltips():
-        cv.putText(output, tip, (height // 100,
-                                 height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
-        offset += height // 40
+        for name in FX.getLayerNames():
+            if 'ON' in name:
+                color = (128, 255, 128)
+            else:
+                color = (128, 128, 255)
 
-    offset += height // 40
-    for readout in FX.getReadouts():
-        cv.putText(output, readout, (height // 100,
-                                     height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
-        offset += height // 40
+            cv.putText(output, name, (height // 100,
+                                    height // 100 + offset), font, font_size, color, 1, cv.LINE_AA)
+            offset += height // 40
 
-    if RECORDING:
-        out.write(output)
-        cv.putText(output, "Recording...", (height // 100,
-                                            height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 40
+        for tip in FX.getTooltips():
+            cv.putText(output, tip, (height // 100,
+                                    height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+            offset += height // 40
+
+        offset += height // 40
+        for readout in FX.getReadouts():
+            cv.putText(output, readout, (height // 100,
+                                        height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+            offset += height // 40
+
+        if RECORDING:
+            out.write(output)
+            cv.putText(output, "Recording...", (height // 100,
+                                                height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+            offset += height // 40
+
+        LAST_OUTPUT = output
     
     # Display the resulting frame
     if FULLSCREEN:
