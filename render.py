@@ -54,6 +54,8 @@ LAST_OUTPUT_TIME = time.time()
 
 FPS_OUT_HISTORY = []
 
+TAKE_SNAPSHOT = False
+
 if not cap.isOpened():
     print("Unable to connect to camera. Closing the program...")
     exit()
@@ -99,6 +101,12 @@ while True:
 
         if RECORDING:
             OUT.write(output)
+
+        if TAKE_SNAPSHOT:
+            timestamp = datetime.now().isoformat(sep='@', timespec='seconds').replace(
+                ':', 'h', 1).replace(':', 'm', 1) + 's'
+            cv.imwrite('{}.jpg'.format(timestamp), output)
+            TAKE_SNAPSHOT = False
 
         # Resize and pad output to fit screen
         height, width, channels = output.shape
@@ -176,6 +184,9 @@ while True:
                 timestamp), FOURCC, 20, (frame.shape[1], frame.shape[0]))
         else:
             OUT = None
+
+    if key == ord('i'):
+        TAKE_SNAPSHOT = True
     # Pass keypress to the FX Stack
     FX.userInput(key)
 
