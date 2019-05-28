@@ -291,16 +291,19 @@ class FaceDetect(Layer):
     def __init__(self):
         super().__init__()
         self.type = 'Face Detection'
+        self.method = 0
         self.model_file = os.path.join(os.path.dirname(os.path.abspath(
             __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(
             __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
-        self.net = cv.dnn.readNetFromTensorflow(
+        self.network = cv.dnn.readNetFromTensorflow(
             self.model_file, self.config_file)
         self.conf_threshold = 0.67
         self.pixelize = False
-        self.tooltips = ["Press 'P' to pixelize faces"]
-        self.readouts = ["Pixelize Faces: {}".format(str(self.pixelize))]
+        self.tooltips = ["Press 'N' to change detection method",
+                         "Press 'P' to pixelize faces"]
+        self.readouts = ["Face Detect Method: Tensor Flow",
+                         "Pixelize Faces: {}".format(str(self.pixelize))]
 
     def apply(self, frame):
         output = frame.copy()
@@ -308,8 +311,8 @@ class FaceDetect(Layer):
         blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
                                     104, 117, 123], False, False)
 
-        self.net.setInput(blob)
-        faces = self.net.forward()
+        self.network.setInput(blob)
+        faces = self.network.forward()
         for i in range(faces.shape[2]):
             confidence = faces[0, 0, i, 2]
             if confidence > self.conf_threshold:
@@ -340,15 +343,37 @@ class FaceDetect(Layer):
                                cv.FONT_HERSHEY_SIMPLEX, 0.3, (64, 232, 64), 1, cv.LINE_AA)
                     cv.rectangle(output, (x1, y1), (x2, y2),
                                  (232, 64, 64), int(round(height/500)), 8)
-
         self.last_input = frame
         self.last_output = output
         return output
 
     def userInput(self, key):
+        if key == ord('n'):
+            self.method += 1
+            if self.method > 1:
+                self.method = 0
+            method_name = ["Tensor Flow", "Caffe"][self.method]
+
+            if self.method == 0:
+                self.model_file = os.path.join(os.path.dirname(os.path.abspath(
+                    __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
+                self.config_file = os.path.join(os.path.dirname(os.path.abspath(
+                    __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
+                self.network = cv.dnn.readNetFromTensorflow(
+                    self.model_file, self.config_file)
+            else:
+                self.model_file = os.path.join(os.path.dirname(os.path.abspath(
+                    __file__)), 'face-detection', 'res10_300x300_ssd_iter_140000_fp16.caffemodel')
+                self.config_file = os.path.join(os.path.dirname(os.path.abspath(
+                    __file__)), 'face-detection', 'deploy.prototxt')
+                self.network = cv.dnn.readNetFromCaffe(
+                    self.config_file, self.model_file)
+
+            self.readouts[0] = "Face Detect Method: {}".format(method_name)
+
         if key == ord('p'):
             self.pixelize = not self.pixelize
-            self.readouts[0] = "Pixelize Faces: {}".format(str(self.pixelize))
+            self.readouts[1] = "Pixelize Faces: {}".format(str(self.pixelize))
 
 
 class ColorFilter(Layer):
