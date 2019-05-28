@@ -3,6 +3,18 @@ import cv2 as cv
 import pyautogui as gui
 import visfx
 import time
+import sys
+
+# Get sys args
+FULLSCREEN = False
+
+for arg in sys.argv[1:]:
+    if arg == '-h' or arg == '--help':
+        print("This scripts renders the default camera with an FX stack")
+        print("Run with '-f' or '--fullscreen' to enable fullscreen")
+        exit()
+    elif arg == '-f' or arg == '--fullscreen':
+        FULLSCREEN = True
 
 # Create an FX Stack
 FX = visfx.Stack(
@@ -63,25 +75,28 @@ while True:
     output = FX.apply(frame)
 
     # Resize and pad output to fit screen
-    height, width, channels = output.shape
-    ratio = SCREEN_HEIGHT / height
-    rescale = tuple([int(x*ratio) for x in (height, width)])
+    height, width, channels = output.shape    
 
-    output = cv.resize(output, (rescale[1], rescale[0]))
-    border_size_x = int((SCREEN_WIDTH - rescale[1]) * 0.5)
-    border_size_y = int((SCREEN_HEIGHT - rescale[0]) * 0.5)
-    output = cv.copyMakeBorder(
-        output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
+    if FULLSCREEN:
+        ratio = SCREEN_HEIGHT / height
+        rescale = tuple([int(x*ratio) for x in (height, width)])
+        output = cv.resize(output, (rescale[1], rescale[0]))
+        border_size_x = int((SCREEN_WIDTH - rescale[1]) * 0.5)
+        border_size_y = int((SCREEN_HEIGHT - rescale[0]) * 0.5)
+        output = cv.copyMakeBorder(
+            output, border_size_y, border_size_y, border_size_x, border_size_x, cv.BORDER_CONSTANT, value=[0, 0, 0])
+        height, width, channels = output.shape
 
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
-    offset = 0
-    cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, avg_fps_out), (height // 10,
-                                                                                    height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-    offset += height // 10
-    cv.putText(output, "FX Layers:", (height // 10,
-                                      height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-    offset += height // 10
+    font_size = height / 2000
+    offset = height // 100
+    cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, avg_fps_out), (height // 100,
+                                                                                    height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+    offset += height // 40
+    cv.putText(output, "FX Layers:", (height // 100,
+                                      height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+    offset += height // 40
 
     for name in FX.getLayerNames():
         if 'ON' in name:
@@ -89,31 +104,32 @@ while True:
         else:
             color = (128, 128, 255)
 
-        cv.putText(output, name, (height // 10,
-                                  height // 10 + offset), font, 0.5, color, 1, cv.LINE_AA)
-        offset += height // 10
+        cv.putText(output, name, (height // 100,
+                                  height // 100 + offset), font, font_size, color, 1, cv.LINE_AA)
+        offset += height // 40
 
-    offset += height // 10
+    offset += height // 40
     for tip in FX.getTooltips():
-        cv.putText(output, tip, (height // 10,
-                                 height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-        offset += height // 10
+        cv.putText(output, tip, (height // 100,
+                                 height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 40
 
-    offset += height // 10
+    offset += height // 40
     for readout in FX.getReadouts():
-        cv.putText(output, readout, (height // 10,
-                                     height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-        offset += height // 10
+        cv.putText(output, readout, (height // 100,
+                                     height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 40
 
     if RECORDING:
         out.write(output)
-        cv.putText(output, "Recording...", (height // 10,
-                                            height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
-        offset += height // 10
+        cv.putText(output, "Recording...", (height // 100,
+                                            height // 100 + offset), font, font_size, (255, 255, 255), 1, cv.LINE_AA)
+        offset += height // 40
     
     # Display the resulting frame
-    cv.namedWindow('frame', cv.WINDOW_NORMAL)
-    cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+    if FULLSCREEN:
+        cv.namedWindow('frame', cv.WINDOW_NORMAL)
+        cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
     cv.imshow('frame', output)
 
     # Get key press
