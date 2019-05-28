@@ -29,6 +29,8 @@ out = cv.VideoWriter('output.avi', fourcc, 20.0, gui.size())
 RECORDING = False
 LAST_OUTPUT_TIME = time.time()
 
+FPS_OUT_HISTORY = []
+
 if not cap.isOpened():
     print("Unable to connect to camera. Closing the program...")
     exit()
@@ -36,9 +38,18 @@ if not cap.isOpened():
 while True:
     # Get processing time
     fps_in = cap.get(cv.CAP_PROP_FPS)
+
     ttp = time.time() - LAST_OUTPUT_TIME
     LAST_OUTPUT_TIME = time.time()
+    
     fps_out = 1 / max(0.00001, ttp)
+    FPS_OUT_HISTORY.append(fps_out)
+    avg_fps_out = 0
+    if len(FPS_OUT_HISTORY) > 5:
+        del FPS_OUT_HISTORY[0]
+    for f in FPS_OUT_HISTORY:
+        avg_fps_out += f
+    avg_fps_out /= len(FPS_OUT_HISTORY)
 
     # Capture frame
     ret, frame = cap.read()
@@ -65,7 +76,7 @@ while True:
     # Add tooltips
     font = cv.FONT_HERSHEY_SIMPLEX
     offset = 0
-    cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, fps_out), (height // 10,
+    cv.putText(output, "FPS IN: {:.1f} | FPS OUT: {:.1f}".format(fps_in, avg_fps_out), (height // 10,
                                                                                     height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
     offset += height // 10
     cv.putText(output, "FX Layers:", (height // 10,
@@ -99,7 +110,7 @@ while True:
         cv.putText(output, "Recording...", (height // 10,
                                             height // 10 + offset), font, 0.5, (255, 255, 255), 1, cv.LINE_AA)
         offset += height // 10
-
+    
     # Display the resulting frame
     cv.namedWindow('frame', cv.WINDOW_NORMAL)
     cv.setWindowProperty('frame', cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
