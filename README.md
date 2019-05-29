@@ -7,4 +7,5 @@ This project provides a collection of visual effects for use with the opencv-pyt
 - Python >= 3.7
 - - numpy >= 1.16
 - - opencv-contrib-python >= 4.1
+- - dlib >= 19.17
 - - PyAutoGUI >= 0.9
