@@ -340,7 +340,11 @@ class FaceDetect(Layer):
                     for point in points:
                         subdiv.insert((point[0], point[1]))
                     triangles = subdiv.getTriangleList()
-                    hullIndex = cv.convexHull(points[:27], returnPoints=False)
+
+                    hullSubdiv = cv.Subdiv2D((0, 0, width, height))
+                    for point in points[:27]:
+                        hullSubdiv.insert((point[0], point[1]))
+                    hullTriangles = hullSubdiv.getTriangleList()
 
                 if self.pixelize:
                     pixelized = cv.resize(
@@ -358,7 +362,7 @@ class FaceDetect(Layer):
                         p2 = (t[2], t[3])
                         p3 = (t[4], t[5])
 
-                        line_color = (64,200,64)
+                        line_color = (64, 200, 64)
 
                         cv.line(output, p1, p2, line_color,
                                 1, cv.LINE_AA, 0)
@@ -366,9 +370,9 @@ class FaceDetect(Layer):
                                 1, cv.LINE_AA, 0)
                         cv.line(output, p1, p3, line_color,
                                 1, cv.LINE_AA, 0)
-                    
+
                     for (x, y) in points:
-                        cv.circle(output, (x, y), 1, (200,200,200), -1)
+                        cv.circle(output, (x, y), 1, (200, 200, 200), -1)
         else:
             blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
                 104, 117, 123], False, False)
