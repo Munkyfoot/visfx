@@ -1,5 +1,6 @@
 import numpy as np
 import cv2 as cv
+import dlib
 import os
 import sys
 import time
@@ -293,83 +294,120 @@ class FaceDetect(Layer):
         self.type = 'Face Detection'
         self.method = 0
         self.model_file = os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
+            __file__)), 'face-detection', 'opencv', 'opencv_face_detector_uint8.pb')
         self.config_file = os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
+            __file__)), 'face-detection', 'opencv', 'opencv_face_detector.pbtxt')
         self.network = cv.dnn.readNetFromTensorflow(
             self.model_file, self.config_file)
         self.conf_threshold = 0.67
+        self.detect_facemarks = False
+        self.detector = dlib.get_frontal_face_detector()
+        self.predictor_file = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'face-detection', 'dlib', 'shape_predictor_68_face_landmarks.dat')
+        self.predictor = dlib.shape_predictor(self.predictor_file)
         self.pixelize = False
         self.tooltips = ["Press 'N' to change detection method",
-                         "Press 'P' to pixelize faces"]
-        self.readouts = ["Face Detect Method: Tensor Flow",
-                         "Pixelize Faces: {}".format(str(self.pixelize))]
+                         "Press 'P' to pixelize faces",
+                         "Press 'L' to detect facial landmarks"]
+        self.readouts = ["Face Detection Method: {}".format(["dlib HoG", "OpenCV DNN"][self.method]),
+                         "Pixelize Faces: {}".format(str(self.pixelize)),
+                         "Detect Facemarks: {}".format(
+                             str(self.detect_facemarks))]
 
     def apply(self, frame):
         output = frame.copy()
         height, width, channels = output.shape
-        blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
-                                    104, 117, 123], False, False)
 
-        self.network.setInput(blob)
-        faces = self.network.forward()
-        for i in range(faces.shape[2]):
-            confidence = faces[0, 0, i, 2]
-            if confidence > self.conf_threshold:
-                x1 = int(faces[0, 0, i, 3] * width)
-                y1 = int(faces[0, 0, i, 4] * height)
-                x2 = int(faces[0, 0, i, 5] * width)
-                y2 = int(faces[0, 0, i, 6] * height)
+        if self.method == 0:
+            rects = self.detector(output, 0)
+
+            for i, rect in enumerate(rects):
+                x1 = rect.left()
+                x2 = rect.right()
+                y1 = rect.top()
+                y2 = rect.bottom()
+                w = x2 - x1
+                h = y2 - y1
 
                 if self.pixelize:
-                    w = x2 - x1
-                    h = y2 - y1
-                    y1_padded = max(0, y1 - h // 8)
-                    y2_padded = min(height, y2 + h // 8)
-                    x1_padded = max(0, x1 - w // 8)
-                    x2_padded = min(width, x2 + w // 8)
-                    w_padded = x2_padded - x1_padded
-                    h_padded = y2_padded - y1_padded
-                    roi = output[y1_padded:y2_padded, x1_padded:x2_padded]
+                    padded_roi = output[y1:y2,
+                                        x1:x2]
                     pixelized = cv.resize(
-                        roi, (w_padded // 16, h_padded // 16))
+                        padded_roi, (w // 16, h // 16))
                     pixelized = cv.resize(
-                        pixelized, (w_padded, h_padded), interpolation=cv.INTER_NEAREST)
-                    output[y1_padded:y2_padded,
-                           x1_padded:x2_padded] = pixelized
+                        pixelized, (w, h), interpolation=cv.INTER_NEAREST)
+                    output[y1:y2,
+                           x1:x2] = pixelized
                 else:
-                    conf_readout = "{:.2f}%".format(confidence * 100)
-                    cv.putText(output, conf_readout, (x1, y1 - 5),
-                               cv.FONT_HERSHEY_SIMPLEX, 0.3, (64, 232, 64), 1, cv.LINE_AA)
                     cv.rectangle(output, (x1, y1), (x2, y2),
                                  (232, 64, 64), int(round(height/500)), 8)
+
+                if self.detect_facemarks:
+                    shape = self.predictor(output, rect)
+                    coords = np.zeros((68, 2), 'int32')
+                    for u in range(68):
+                        coords[u] = (shape.part(u).x, shape.part(u).y)
+
+                    for (x, y) in coords:
+                        cv.circle(output, (x, y), 1, (0, 0, 255), -1)
+        else:
+            blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
+                104, 117, 123], False, False)
+
+            self.network.setInput(blob)
+            faces = self.network.forward()
+            for i in range(faces.shape[2]):
+                confidence = faces[0, 0, i, 2]
+                if confidence > self.conf_threshold:
+                    x1 = int(faces[0, 0, i, 3] * width)
+                    y1 = int(faces[0, 0, i, 4] * height)
+                    x2 = int(faces[0, 0, i, 5] * width)
+                    y2 = int(faces[0, 0, i, 6] * height)
+
+                    if self.pixelize:
+                        w = x2 - x1
+                        h = y2 - y1
+                        y1_padded = max(0, y1 - h // 8)
+                        y2_padded = min(height, y2 + h // 8)
+                        x1_padded = max(0, x1 - w // 8)
+                        x2_padded = min(width, x2 + w // 8)
+                        w_padded = x2_padded - x1_padded
+                        h_padded = y2_padded - y1_padded
+                        roi = output[y1_padded:y2_padded, x1_padded:x2_padded]
+                        pixelized = cv.resize(
+                            roi, (w_padded // 16, h_padded // 16))
+                        pixelized = cv.resize(
+                            pixelized, (w_padded, h_padded), interpolation=cv.INTER_NEAREST)
+                        output[y1_padded:y2_padded,
+                               x1_padded:x2_padded] = pixelized
+                    else:
+                        conf_readout = "{:.2f}%".format(confidence * 100)
+                        cv.putText(output, conf_readout, (x1, y1 - 5),
+                                   cv.FONT_HERSHEY_SIMPLEX, height / 1500, (64, 232, 64), 1, cv.LINE_AA)
+                        cv.rectangle(output, (x1, y1), (x2, y2),
+                                     (232, 64, 64), int(round(height/500)), 8)
+
         self.last_input = frame
         self.last_output = output
         return output
 
     def userInput(self, key):
         if key == ord('n'):
-            self.method += 1
-            if self.method > 1:
-                self.method = 0
-            method_name = ["Tensor Flow", "Caffe"][self.method]
-
             if self.method == 0:
-                self.model_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'opencv_face_detector_uint8.pb')
-                self.config_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'opencv_face_detector.pbtxt')
-                self.network = cv.dnn.readNetFromTensorflow(
-                    self.model_file, self.config_file)
+                self.method = 1
+                del self.readouts[2]
             else:
-                self.model_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'res10_300x300_ssd_iter_140000_fp16.caffemodel')
-                self.config_file = os.path.join(os.path.dirname(os.path.abspath(
-                    __file__)), 'face-detection', 'deploy.prototxt')
-                self.network = cv.dnn.readNetFromCaffe(
-                    self.config_file, self.model_file)
+                self.method = 0
+                self.readouts.append("Detect Facemarks: {}".format(
+                    str(self.detect_facemarks)))
 
-            self.readouts[0] = "Face Detect Method: {}".format(method_name)
+            self.readouts[0] = "Face Detection Method: {}".format(
+                ["dlib HoG", "OpenCV DNN"][self.method])
+
+        if key == ord('l') and self.method == 0:
+            self.detect_facemarks = not self.detect_facemarks
+            self.readouts[2] = "Detect Facemarks: {}".format(
+                str(self.detect_facemarks))
 
         if key == ord('p'):
             self.pixelize = not self.pixelize
