@@ -328,29 +328,47 @@ class FaceDetect(Layer):
                 y2 = rect.bottom()
                 w = x2 - x1
                 h = y2 - y1
+                roi = output[y1:y2, x1:x2]
 
                 if self.detect_facemarks:
                     shape = self.predictor(output, rect)
-                    coords = np.zeros((68, 2), 'int32')
-                    for u in range(68):
-                        coords[u] = (shape.part(u).x, shape.part(u).y)
+                    points = np.zeros((68, 2), 'int32')
+                    for pointIndex in range(68):
+                        points[pointIndex] = (shape.part(
+                            pointIndex).x, shape.part(pointIndex).y)
+                    subdiv = cv.Subdiv2D((0, 0, width, height))
+                    for point in points:
+                        subdiv.insert((point[0], point[1]))
+                    triangles = subdiv.getTriangleList()
+                    hullIndex = cv.convexHull(points[:27], returnPoints=False)
 
                 if self.pixelize:
-                    padded_roi = output[y1:y2,
-                                        x1:x2]
                     pixelized = cv.resize(
-                        padded_roi, (w // 16, h // 16))
+                        roi, (w // 16, h // 16))
                     pixelized = cv.resize(
                         pixelized, (w, h), interpolation=cv.INTER_NEAREST)
-                    output[y1:y2,
-                           x1:x2] = pixelized
+                    output[y1:y2, x1:x2] = pixelized
                 else:
                     cv.rectangle(output, (x1, y1), (x2, y2),
                                  (232, 64, 64), int(round(height/500)), 8)
 
                 if self.detect_facemarks:
-                    for (x, y) in coords:
-                        cv.circle(output, (x, y), 1, (0, 0, 255), -1)
+                    for t in triangles:
+                        p1 = (t[0], t[1])
+                        p2 = (t[2], t[3])
+                        p3 = (t[4], t[5])
+
+                        line_color = (64,200,64)
+
+                        cv.line(output, p1, p2, line_color,
+                                1, cv.LINE_AA, 0)
+                        cv.line(output, p2, p3, line_color,
+                                1, cv.LINE_AA, 0)
+                        cv.line(output, p1, p3, line_color,
+                                1, cv.LINE_AA, 0)
+                    
+                    for (x, y) in points:
+                        cv.circle(output, (x, y), 1, (200,200,200), -1)
         else:
             blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
                 104, 117, 123], False, False)
