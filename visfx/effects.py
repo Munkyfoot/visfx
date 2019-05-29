@@ -329,6 +329,12 @@ class FaceDetect(Layer):
                 w = x2 - x1
                 h = y2 - y1
 
+                if self.detect_facemarks:
+                    shape = self.predictor(output, rect)
+                    coords = np.zeros((68, 2), 'int32')
+                    for u in range(68):
+                        coords[u] = (shape.part(u).x, shape.part(u).y)
+
                 if self.pixelize:
                     padded_roi = output[y1:y2,
                                         x1:x2]
@@ -343,11 +349,6 @@ class FaceDetect(Layer):
                                  (232, 64, 64), int(round(height/500)), 8)
 
                 if self.detect_facemarks:
-                    shape = self.predictor(output, rect)
-                    coords = np.zeros((68, 2), 'int32')
-                    for u in range(68):
-                        coords[u] = (shape.part(u).x, shape.part(u).y)
-
                     for (x, y) in coords:
                         cv.circle(output, (x, y), 1, (0, 0, 255), -1)
         else:
