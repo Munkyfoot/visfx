@@ -292,6 +292,14 @@ class FaceDetect(Layer):
     def __init__(self):
         super().__init__()
         self.type = 'Face Detection'
+        self.method = 0
+        self.model_file = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'face-detection', 'opencv', 'opencv_face_detector_uint8.pb')
+        self.config_file = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), 'face-detection', 'opencv', 'opencv_face_detector.pbtxt')
+        self.network = cv.dnn.readNetFromTensorflow(
+            self.model_file, self.config_file)
+        self.conf_threshold = 0.67
         self.detect_facemarks = False
         self.detector = dlib.get_frontal_face_detector()
         self.predictor_file = os.path.join(os.path.dirname(os.path.abspath(
