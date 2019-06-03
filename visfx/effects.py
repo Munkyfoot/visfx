@@ -386,7 +386,7 @@ class FaceDetect(Layer):
 
                 if self.pixelize:
                     pixelized = cv.resize(
-                        roi, (w // 16, h // 16))
+                        roi, (8, 8))
                     pixelized = cv.resize(
                         pixelized, (w, h), interpolation=cv.INTER_NEAREST)
                     output[y1:y2, x1:x2] = pixelized
@@ -486,7 +486,7 @@ class FaceDetect(Layer):
                         h_padded = y2_padded - y1_padded
                         roi = output[y1_padded:y2_padded, x1_padded:x2_padded]
                         pixelized = cv.resize(
-                            roi, (w_padded // 16, h_padded // 16))
+                            roi, (8, 8))
                         pixelized = cv.resize(
                             pixelized, (w_padded, h_padded), interpolation=cv.INTER_NEAREST)
                         output[y1_padded:y2_padded,
