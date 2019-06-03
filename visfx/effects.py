@@ -360,9 +360,19 @@ class FaceDetect(Layer):
                     all_points_in_range = True
 
                     face_center = [0, 0]
+                    face_bounds = {
+                        'x1': width,
+                        'x2': 0,
+                        'y1': height,
+                        'y2': 0
+                    }
                     for (x, y) in points:
                         face_center[0] += x
                         face_center[1] += y
+                        face_bounds['x1'] = min(face_bounds['x1'], x)
+                        face_bounds['y1'] = min(face_bounds['y1'], y)
+                        face_bounds['x2'] = max(face_bounds['x2'], x)
+                        face_bounds['y2'] = max(face_bounds['y2'], y)
                         if x < 0 or x >= width\
                                 or y < 0 or y >= height:
                             all_points_in_range = False
