@@ -11,13 +11,14 @@ import visfx
 # Get sys args
 PROCESS_FILE = False
 FULLSCREEN = False
+PRESET_NAME = 'default'
 SCALE = 1
 
 for i in range(len(sys.argv)):
     arg = sys.argv[i]
     if arg == '-h' or arg == '--help':
         print("This scripts renders the default camera with an FX stack")
-        print("Run with '-f' or '--file' followed by an absolute file path to process FX on an image or video file")
+        print("Run with '-f' or '--file' followed by an absolute file path to process FX on an image file")
         print("Run with '-fs' or '--fullscreen' to enable fullscreen")
         print("Run with '-s' or '--scale' followed by a value to set scale")
         print("Run with '-p' or '--preset' followed by preset name to set preset")
@@ -79,7 +80,7 @@ if PROCESS_FILE:
         output = FX.apply(img)
         cv.imwrite(FILE_PATH + "processed_" + FILE_NAME, output)
     except Exception as e:
-        print(e)
+        print('File failed to load', e)
 else:
     SCREEN_WIDTH, SCREEN_HEIGHT = gui.size()
     ASPECT_RATIO = SCREEN_WIDTH / SCREEN_HEIGHT
