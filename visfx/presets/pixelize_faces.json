@@ -1,0 +1,7 @@
+{
+    "FaceDetect" : {
+        "active" : true,
+        "method" : 1,
+        "pixelize" : true
+    }
+}

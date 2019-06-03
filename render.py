@@ -62,6 +62,7 @@ for layer_name in PRESET:
     layer = getattr(visfx.effects, layer_name)()
     for attribute in PRESET[layer_name]:
         setattr(layer, attribute, PRESET[layer_name][attribute])
+    layer.updateReadouts()
     LAYERS.append(layer)
 
 FX = visfx.Stack(

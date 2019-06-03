@@ -24,6 +24,9 @@ class Layer:
     def userInput(self, key):
         pass
 
+    def updateReadouts(self):
+        pass
+
 
 class MoveDetect(Layer):
     '''Visual FX Layer (Movement Detection)'''
@@ -143,11 +146,15 @@ class RemoveBG(Layer):
             self.threshold += 4
             if self.threshold > 255:
                 self.threshold = 4
-            self.readouts[0] = "BG Detection Threshold:{}".format(
-                self.threshold)
 
         if key == ord('v'):
             self.show_bg = not self.show_bg
+
+        self.updateReadouts()
+
+    def updateReadouts(self):
+        self.readouts[0] = "BG Detection Threshold:{}".format(
+            self.threshold)
 
 
 class Tracers(Layer):
@@ -185,8 +192,12 @@ class Tracers(Layer):
             self.duration += 1
             if self.duration > 4:
                 self.duration = 1
-            self.readouts[0] = "Tracer Duration:{}".format(
-                self.duration)
+
+        self.updateReadouts()
+
+    def updateReadouts(self):
+        self.readouts[0] = "Tracer Duration:{}".format(
+            self.duration)
 
 
 class Denoise(Layer):
@@ -223,8 +234,12 @@ class Denoise(Layer):
             self.strength += 1
             if self.strength > 3:
                 self.strength = 1
-            self.readouts[0] = "Denoise Strength:{}".format(
-                self.strength)
+
+        self.updateReadouts()
+
+    def updateReadouts(self):
+        self.readouts[0] = "Denoise Strength:{}".format(
+            self.strength)
 
 
 class Symmetry(Layer):
@@ -500,9 +515,6 @@ class FaceDetect(Layer):
                 self.readouts.append("Face Filter: {}".format(
                     ["Face Mesh", "Glass", "Voronoi", "Scaramouche"][self.face_filter]))
 
-            self.readouts[0] = "Face Detection Method: {}".format(
-                ["dlib HoG", "OpenCV DNN"][self.method])
-
         if key == ord('l') and self.method == 0:
             self.detect_facemarks = not self.detect_facemarks
             self.readouts[2] = "Detect Facemarks: {}".format(
@@ -517,7 +529,13 @@ class FaceDetect(Layer):
 
         if key == ord('p'):
             self.pixelize = not self.pixelize
-            self.readouts[1] = "Pixelize Faces: {}".format(str(self.pixelize))
+
+        self.updateReadouts()
+
+    def updateReadouts(self):
+        self.readouts[0] = "Face Detection Method: {}".format(
+            ["dlib HoG", "OpenCV DNN"][self.method])
+        self.readouts[1] = "Pixelize Faces: {}".format(str(self.pixelize))
 
 
 class ColorFilter(Layer):
@@ -608,5 +626,9 @@ class ColorFilter(Layer):
             self.filter_id += 1
             if self.filter_id >= len(self.filters):
                 self.filter_id = 0
-            self.readouts[0] = "Color Filter: {}".format(
-                self.filters[self.filter_id])
+
+        self.updateReadouts()
+
+    def updateReadouts(self):
+        self.readouts[0] = "Color Filter: {}".format(
+            self.filters[self.filter_id])
