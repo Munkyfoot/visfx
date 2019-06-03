@@ -4,6 +4,7 @@ import dlib
 import os
 import sys
 import time
+import random
 
 
 class Layer:
@@ -301,18 +302,22 @@ class FaceDetect(Layer):
             self.model_file, self.config_file)
         self.conf_threshold = 0.67
         self.detect_facemarks = False
+        self.face_filter = 0
         self.detector = dlib.get_frontal_face_detector()
         self.predictor_file = os.path.join(os.path.dirname(os.path.abspath(
             __file__)), 'face-detection', 'dlib', 'shape_predictor_68_face_landmarks.dat')
         self.predictor = dlib.shape_predictor(self.predictor_file)
         self.pixelize = False
+        self.colors = []
         self.tooltips = ["Press 'N' to change detection method",
                          "Press 'P' to pixelize faces",
-                         "Press 'L' to detect facial landmarks"]
+                         "Press 'L' to detect facial landmarks",
+                         "Press 'K' to change face filter"]
         self.readouts = ["Face Detection Method: {}".format(["dlib HoG", "OpenCV DNN"][self.method]),
                          "Pixelize Faces: {}".format(str(self.pixelize)),
                          "Detect Facemarks: {}".format(
-                             str(self.detect_facemarks))]
+                             str(self.detect_facemarks)),
+                         "Face Filter: Face Mesh"]
 
     def apply(self, frame):
         output = frame.copy()
@@ -336,15 +341,33 @@ class FaceDetect(Layer):
                     for pointIndex in range(68):
                         points[pointIndex] = (shape.part(
                             pointIndex).x, shape.part(pointIndex).y)
-                    subdiv = cv.Subdiv2D((0, 0, width, height))
-                    for point in points:
-                        subdiv.insert((point[0], point[1]))
-                    triangles = subdiv.getTriangleList()
 
-                    hullSubdiv = cv.Subdiv2D((0, 0, width, height))
-                    for point in points[:27]:
-                        hullSubdiv.insert((point[0], point[1]))
-                    hullTriangles = hullSubdiv.getTriangleList()
+                    all_points_in_range = True
+
+                    face_center = [0, 0]
+                    for (x, y) in points:
+                        face_center[0] += x
+                        face_center[1] += y
+                        if x < 0 or x >= width\
+                                or y < 0 or y >= height:
+                            all_points_in_range = False
+                            break
+
+                    if all_points_in_range:
+                        face_center = [
+                            int(face_center[0] / len(points)), int(face_center[1] / len(points))]
+                        face_center = tuple(face_center)
+                        subdiv = cv.Subdiv2D((0, 0, width, height))
+                        for point in points:
+                            subdiv.insert((point[0], point[1]))
+                        triangles = subdiv.getTriangleList()
+                        (facets, centers) = subdiv.getVoronoiFacetList([])
+
+                        hull = cv.convexHull(points[:27])
+                        hullSubdiv = cv.Subdiv2D((0, 0, width, height))
+                        for point in points[:27]:
+                            hullSubdiv.insert((point[0], point[1]))
+                        hullTriangles = hullSubdiv.getTriangleList()
 
                 if self.pixelize:
                     pixelized = cv.resize(
@@ -352,27 +375,77 @@ class FaceDetect(Layer):
                     pixelized = cv.resize(
                         pixelized, (w, h), interpolation=cv.INTER_NEAREST)
                     output[y1:y2, x1:x2] = pixelized
-                else:
+                elif not self.detect_facemarks:
                     cv.rectangle(output, (x1, y1), (x2, y2),
                                  (232, 64, 64), int(round(height/500)), 8)
 
-                if self.detect_facemarks:
-                    for t in triangles:
-                        p1 = (t[0], t[1])
-                        p2 = (t[2], t[3])
-                        p3 = (t[4], t[5])
+                if self.detect_facemarks and all_points_in_range:
+                    blackout = np.zeros_like(output)
+                    mask = np.zeros_like(output)
+                    cv.fillConvexPoly(
+                        mask, hull, (255, 255, 255), cv.LINE_AA, 0)
 
-                        line_color = (64, 200, 64)
+                    if self.face_filter == 0 or self.face_filter == 1:
+                        if self.face_filter == 1:
+                            glass = output.copy()
 
-                        cv.line(output, p1, p2, line_color,
-                                1, cv.LINE_AA, 0)
-                        cv.line(output, p2, p3, line_color,
-                                1, cv.LINE_AA, 0)
-                        cv.line(output, p1, p3, line_color,
-                                1, cv.LINE_AA, 0)
+                        for t in triangles:
+                            p1 = (t[0], t[1])
+                            p2 = (t[2], t[3])
+                            p3 = (t[4], t[5])
 
-                    for (x, y) in points:
-                        cv.circle(output, (x, y), 1, (200, 200, 200), -1)
+                            if self.face_filter == 0:
+                                line_color = (64, 200, 64)
+
+                                cv.line(output, p1, p2, line_color,
+                                        1, cv.LINE_AA, 0)
+                                cv.line(output, p2, p3, line_color,
+                                        1, cv.LINE_AA, 0)
+                                cv.line(output, p1, p3, line_color,
+                                        1, cv.LINE_AA, 0)
+
+                            if self.face_filter == 1:
+                                tPoints = np.array([p1, p2, p3], 'int32')
+                                polyColor = (0, 0, 0)
+
+                                for p in tPoints:
+                                    polyColor += output[p[1], p[0]] / 3
+
+                                cv.fillConvexPoly(
+                                    glass, tPoints, polyColor, cv.LINE_AA, 0)
+
+                        if self.face_filter == 1:
+                            output = cv.seamlessClone(
+                                glass, output, mask, face_center, cv.NORMAL_CLONE, blend=True)
+
+                    if self.face_filter == 0:
+                        for (x, y) in points:
+                            cv.circle(output, (x, y), 1, (200, 200, 200), -1)
+
+                    if self.face_filter == 2:
+                        voronoi = output.copy()
+                        for f in range(0, len(facets)):
+                            facet_arr = []
+                            for facet in facets[f]:
+                                facet_arr.append(facet)
+
+                            facet_arr = np.array(facet_arr, np.int)
+                            if len(self.colors) - 1 < f:
+                                color = (random.randint(0, 255), random.randint(
+                                    0, 255), random.randint(0, 255))
+                                self.colors.append(color)
+                            else:
+                                color = self.colors[f]
+
+                            cv.fillConvexPoly(
+                                voronoi, facet_arr, color, cv.LINE_AA, 0)
+                        output = cv.seamlessClone(
+                            voronoi, output, mask, face_center, cv.NORMAL_CLONE, blend=True)
+
+                    if self.face_filter == 3:                        
+                        output = cv.seamlessClone(
+                            output, blackout, mask, face_center, cv.NORMAL_CLONE, blend=True)
+
         else:
             blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
                 104, 117, 123], False, False)
@@ -419,10 +492,13 @@ class FaceDetect(Layer):
             if self.method == 0:
                 self.method = 1
                 del self.readouts[2]
+                del self.readouts[2]
             else:
                 self.method = 0
                 self.readouts.append("Detect Facemarks: {}".format(
                     str(self.detect_facemarks)))
+                self.readouts.append("Face Filter: {}".format(
+                    ["Face Mesh", "Glass", "Voronoi", "Scaramouche"][self.face_filter]))
 
             self.readouts[0] = "Face Detection Method: {}".format(
                 ["dlib HoG", "OpenCV DNN"][self.method])
@@ -431,6 +507,13 @@ class FaceDetect(Layer):
             self.detect_facemarks = not self.detect_facemarks
             self.readouts[2] = "Detect Facemarks: {}".format(
                 str(self.detect_facemarks))
+
+        if key == ord('k') and self.method == 0 and self.detect_facemarks:
+            self.face_filter += 1
+            if self.face_filter > 3:
+                self.face_filter = 0
+            self.readouts[3] = "Face Filter: {}".format(
+                ["Face Mesh", "Glass", "Voronoi", "Scaramouche"][self.face_filter])
 
         if key == ord('p'):
             self.pixelize = not self.pixelize
