@@ -442,7 +442,7 @@ class FaceDetect(Layer):
                         output = cv.seamlessClone(
                             voronoi, output, mask, face_center, cv.NORMAL_CLONE, blend=True)
 
-                    if self.face_filter == 3:                        
+                    if self.face_filter == 3:
                         output = cv.seamlessClone(
                             output, blackout, mask, face_center, cv.NORMAL_CLONE, blend=True)
 

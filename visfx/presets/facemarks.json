@@ -1,0 +1,6 @@
+{
+    "FaceDetect" : {
+        "active" : true,
+        "detect_facemarks" : true
+    }
+}

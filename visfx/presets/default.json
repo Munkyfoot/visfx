@@ -1,0 +1,26 @@
+{
+    "Denoise" : {
+        "active" : false
+    },
+    "FaceDetect" : {
+        "active" : false
+    },
+    "MoveDetect" : {
+        "active" : false
+    },
+    "Ghost" : {
+        "active" : false
+    },
+    "RemoveBG" : {
+        "active" : false
+    },
+    "ColorFilter" : {
+        "active" : false
+    },
+    "Symmetry" : {
+        "active" : false
+    },
+    "Tracers" : {
+        "active" : false
+    }
+}
