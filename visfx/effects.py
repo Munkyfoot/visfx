@@ -360,16 +360,14 @@ class FaceDetect(Layer):
 
                     all_points_in_range = True
 
-                    face_center = [0, 0]
                     face_bounds = {
-                        'x1': width,
+                        'x1': width-1,
                         'x2': 0,
-                        'y1': height,
+                        'y1': height-1,
                         'y2': 0
                     }
+
                     for (x, y) in points:
-                        face_center[0] += x
-                        face_center[1] += y
                         face_bounds['x1'] = min(face_bounds['x1'], x + w // 8)
                         face_bounds['y1'] = min(face_bounds['y1'], y + h // 8)
                         face_bounds['x2'] = max(face_bounds['x2'], x - w // 8)
@@ -379,10 +377,12 @@ class FaceDetect(Layer):
                             all_points_in_range = False
                             break
 
+                    face_center = (
+                        (face_bounds['x1'] + face_bounds['x2']) // 2,
+                        (face_bounds['y1'] + face_bounds['y2']) // 2
+                    )
+
                     if all_points_in_range:
-                        face_center = [
-                            int(face_center[0] / len(points)), int(face_center[1] / len(points))]
-                        face_center = tuple(face_center)
                         subdiv = cv.Subdiv2D((0, 0, width, height))
                         for point in points:
                             subdiv.insert((point[0], point[1]))
