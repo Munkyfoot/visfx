@@ -340,6 +340,7 @@ class FaceDetect(Layer):
 
         if self.method == 0:
             rects = self.detector(output, 0)
+            blackout = np.zeros_like(output)
 
             for i, rect in enumerate(rects):
                 x1 = rect.left()
@@ -369,10 +370,10 @@ class FaceDetect(Layer):
                     for (x, y) in points:
                         face_center[0] += x
                         face_center[1] += y
-                        face_bounds['x1'] = min(face_bounds['x1'], x)
-                        face_bounds['y1'] = min(face_bounds['y1'], y)
-                        face_bounds['x2'] = max(face_bounds['x2'], x)
-                        face_bounds['y2'] = max(face_bounds['y2'], y)
+                        face_bounds['x1'] = min(face_bounds['x1'], x + w // 8)
+                        face_bounds['y1'] = min(face_bounds['y1'], y + h // 8)
+                        face_bounds['x2'] = max(face_bounds['x2'], x - w // 8)
+                        face_bounds['y2'] = max(face_bounds['y2'], y - h // 8)
                         if x < 0 or x >= width\
                                 or y < 0 or y >= height:
                             all_points_in_range = False
@@ -405,7 +406,6 @@ class FaceDetect(Layer):
                                  (232, 64, 64), int(round(height/500)), 8)
 
                 if self.detect_facemarks and all_points_in_range:
-                    blackout = np.zeros_like(output)
                     mask = np.zeros_like(output)
                     cv.fillConvexPoly(
                         mask, hull, (255, 255, 255), cv.LINE_AA, 0)
@@ -468,9 +468,11 @@ class FaceDetect(Layer):
                             voronoi, output, mask, face_center, cv.NORMAL_CLONE, blend=True)
 
                     if self.face_filter == 3:
-                        output = cv.seamlessClone(
+                        blackout = cv.seamlessClone(
                             output, blackout, mask, face_center, cv.NORMAL_CLONE, blend=True)
 
+                        if i == len(rects) - 1:
+                            output = blackout
         else:
             blob = cv.dnn.blobFromImage(output, 1.0, (300, 300), [
                 104, 117, 123], False, False)
