@@ -28,7 +28,7 @@ for i in range(len(sys.argv)):
         FILE_PATH = ""
         FILE_NAME = ""
         quotes = 0
-        while quotes < 2:
+        while quotes < 2 and i + 1 < len(sys.argv):
             val = sys.argv[i+1]
             if "'" in val or '"' in val:
                 quotes += 1
@@ -49,7 +49,7 @@ for i in range(len(sys.argv)):
     elif arg == '-s' or arg == '--scale':
         SCALE = float(sys.argv[i+1])
         i += 1
-    elif arg == '-p' or arg == '--presets':
+    elif arg == '-p' or arg == '--preset':
         PRESET_NAME = sys.argv[i+1]
         i += 1
 
